@@ -18,6 +18,77 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "yourpassword")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
+
+# This endpoint is to match a job posted in jobs table to the talent user
+@app.route('/match-jobs', methods=['POST'])
+def match_jobs_for_talent():
+    data = request.json
+    talent_id = data.get('talent_id')
+
+    if not talent_id:
+        return jsonify({"error": "Missing talent_id"}), 400
+
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
+    )
+    cursor = conn.cursor()
+
+    # Get talent details
+    cursor.execute("""
+        SELECT resume, bio, skills, experience
+        FROM talent_profiles
+        WHERE talent_id = %s
+    """, (talent_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Talent not found"}), 404
+
+    resume, bio, skills, experience = row
+    skills_text = ', '.join(skills) if isinstance(skills, list) else skills or ''
+    query = f"{bio or ''} {resume or ''} {skills_text} {experience or ''}"
+
+    # Get jobs with required_skills
+    cursor.execute("""
+        SELECT job_id, job_title, job_description, required_skills, recruiter_id
+        FROM jobs
+    """)
+    jobs = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    docs = [query]
+    for job in jobs:
+        job_id, title, description, required_skills, recruiter_id = job
+        skills_str = ', '.join(required_skills) if required_skills else ''
+        docs.append(f"{title} {description} {skills_str}")
+
+    tfidf = TfidfVectorizer(stop_words='english')
+    vectors = tfidf.fit_transform(docs)
+    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+
+    matches = []
+    for i, score in enumerate(scores):
+        if score >= 0.1:
+            job_id, title, description, required_skills,recruiter_id = jobs[i]
+            matches.append({
+                "job_id": job_id,
+                "job_title": title,
+                "job_description": description,
+                "required_skills": required_skills or [],
+                "recruiter_id": recruiter_id,
+                "match_score": round(score * 100, 2)
+            })
+
+    matches.sort(key=lambda x: -x["match_score"])
+    return jsonify({ "matches": matches })
+
 # This endpoint is used for semantic style search 
 @app.route('/search-talents', methods=['POST'])
 def search_talents():
