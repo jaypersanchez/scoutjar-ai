@@ -55,10 +55,18 @@ def match_jobs_for_talent():
     query = f"{bio or ''} {resume or ''} {skills_text} {experience or ''}"
 
     # Get jobs with required_skills
-    cursor.execute("""
+    '''cursor.execute("""
         SELECT job_id, job_title, job_description, required_skills, recruiter_id
         FROM jobs
-    """)
+    """)'''
+    cursor.execute("""
+        SELECT j.job_id, j.job_title, j.job_description, j.required_skills, j.recruiter_id
+        FROM jobs j
+        LEFT JOIN job_applications ja ON j.job_id = ja.job_id AND ja.talent_id = %s
+        WHERE ja.talent_id IS NULL
+    """, (talent_id,))
+    jobs = cursor.fetchall()
+
     jobs = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -88,6 +96,36 @@ def match_jobs_for_talent():
 
     matches.sort(key=lambda x: -x["match_score"])
     return jsonify({ "matches": matches })
+
+# Return a list of jobs the talent has applied for
+@app.route('/applied-jobs', methods=['POST'])
+def get_applied_jobs():
+    data = request.json
+    talent_id = data.get("talent_id")
+
+    cursor = db.cursor()
+
+    cursor.execute("""
+        SELECT j.job_id, j.job_title, j.job_description, j.required_skills, j.recruiter_id
+        FROM jobs j
+        JOIN job_applications ja ON j.job_id = ja.job_id
+        WHERE ja.talent_id = %s
+    """, (talent_id,))
+    
+    jobs = cursor.fetchall()
+    applied_jobs = []
+    for row in jobs:
+        job_id, title, description, required_skills, recruiter_id = row
+        applied_jobs.append({
+            "job_id": job_id,
+            "job_title": title,
+            "job_description": description,
+            "required_skills": required_skills or [],
+            "recruiter_id": recruiter_id
+        })
+    
+    return jsonify({"applied_jobs": applied_jobs})
+
 
 # This endpoint is used for semantic style search 
 @app.route('/search-talents', methods=['POST'])
