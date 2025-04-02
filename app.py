@@ -23,10 +23,90 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 @app.route('/match-jobs', methods=['POST'])
 def match_jobs_for_talent():
     data = request.json
-    talent_id = data.get('talent_id')
+    talent_id = data.get("talent_id")
 
     if not talent_id:
         return jsonify({"error": "Missing talent_id"}), 400
+
+    print("🔍 Matching jobs for talent_id:", talent_id)
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        # Step 1: Get the talent profile for query vector
+        cursor.execute("""
+            SELECT resume, bio, experience, skills
+            FROM talent_profiles
+            WHERE talent_id = %s;
+        """, (talent_id,))
+        talent = cursor.fetchone()
+
+        if not talent:
+            return jsonify({"error": "Talent not found"}), 404
+
+        resume, bio, experience, skills = talent
+        talent_query = f"{resume or ''} {bio or ''} {experience or ''} {' '.join(skills or [])}"
+
+        # Step 2: Get all jobs not applied for
+        cursor.execute("""
+            SELECT j.job_id, j.job_title, j.job_description, j.required_skills, j.recruiter_id
+            FROM jobs j
+            WHERE j.job_id NOT IN (
+                SELECT job_id FROM job_applications WHERE talent_id = %s
+            );
+        """, (talent_id,))
+        jobs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not jobs:
+            print("⚠️ No available jobs for this talent.")
+            return jsonify({"matches": []})
+
+        job_docs = [
+            f"{title} {desc} {' '.join(skills or [])}" for (_, title, desc, skills, _) in jobs
+        ]
+
+        tfidf = TfidfVectorizer(stop_words='english')
+        vectors = tfidf.fit_transform([talent_query] + job_docs)
+        scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+
+        matches = []
+        for i, score in enumerate(scores):
+            if score >= 0.1:
+                job = jobs[i]
+                matches.append({
+                    "job_id": job[0],
+                    "title": job[1],
+                    "description": job[2],
+                    "skills_required": job[3],
+                    "recruiter_id": job[4],
+                    "match_score": round(score * 100, 2)
+                })
+
+        matches.sort(key=lambda x: -x['match_score'])
+        print(f"✅ Matched {len(matches)} jobs for talent_id {talent_id}")
+        return jsonify({"matches": matches})
+
+    except Exception as e:
+        print("🔥 Error in /match-jobs:", e)
+        return jsonify({"error": "Failed to match jobs"}), 500
+
+
+
+
+# Return a list of jobs the talent has applied for
+@app.route('/applied-jobs', methods=['POST'])
+def get_applied_jobs():
+    data = request.json
+    talent_id = data.get("talent_id")
 
     conn = psycopg2.connect(
         dbname=DB_NAME,
@@ -37,94 +117,32 @@ def match_jobs_for_talent():
     )
     cursor = conn.cursor()
 
-    # Get talent details
     cursor.execute("""
-        SELECT resume, bio, skills, experience
-        FROM talent_profiles
-        WHERE talent_id = %s
-    """, (talent_id,))
-    row = cursor.fetchone()
-
-    if not row:
-        cursor.close()
-        conn.close()
-        return jsonify({"error": "Talent not found"}), 404
-
-    resume, bio, skills, experience = row
-    skills_text = ', '.join(skills) if isinstance(skills, list) else skills or ''
-    query = f"{bio or ''} {resume or ''} {skills_text} {experience or ''}"
-
-    # Get jobs with required_skills
-    '''cursor.execute("""
-        SELECT job_id, job_title, job_description, required_skills, recruiter_id
-        FROM jobs
-    """)'''
-    cursor.execute("""
-        SELECT j.job_id, j.job_title, j.job_description, j.required_skills, j.recruiter_id
-        FROM jobs j
-        LEFT JOIN job_applications ja ON j.job_id = ja.job_id AND ja.talent_id = %s
-        WHERE ja.talent_id IS NULL
-    """, (talent_id,))
-    jobs = cursor.fetchall()
-
-    jobs = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    docs = [query]
-    for job in jobs:
-        job_id, title, description, required_skills, recruiter_id = job
-        skills_str = ', '.join(required_skills) if required_skills else ''
-        docs.append(f"{title} {description} {skills_str}")
-
-    tfidf = TfidfVectorizer(stop_words='english')
-    vectors = tfidf.fit_transform(docs)
-    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
-
-    matches = []
-    for i, score in enumerate(scores):
-        if score >= 0.1:
-            job_id, title, description, required_skills,recruiter_id = jobs[i]
-            matches.append({
-                "job_id": job_id,
-                "job_title": title,
-                "job_description": description,
-                "required_skills": required_skills or [],
-                "recruiter_id": recruiter_id,
-                "match_score": round(score * 100, 2)
-            })
-
-    matches.sort(key=lambda x: -x["match_score"])
-    return jsonify({ "matches": matches })
-
-# Return a list of jobs the talent has applied for
-@app.route('/applied-jobs', methods=['POST'])
-def get_applied_jobs():
-    data = request.json
-    talent_id = data.get("talent_id")
-
-    cursor = db.cursor()
-
-    cursor.execute("""
-        SELECT j.job_id, j.job_title, j.job_description, j.required_skills, j.recruiter_id
+        SELECT j.job_id, j.job_title, j.job_description, j.required_skills, j.recruiter_id,
+            (SELECT COUNT(*) FROM job_applications WHERE job_id = j.job_id) as applicant_count
         FROM jobs j
         JOIN job_applications ja ON j.job_id = ja.job_id
         WHERE ja.talent_id = %s
     """, (talent_id,))
     
     jobs = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
     applied_jobs = []
     for row in jobs:
-        job_id, title, description, required_skills, recruiter_id = row
+        job_id, title, description, required_skills, recruiter_id, applicant_count = row
         applied_jobs.append({
             "job_id": job_id,
             "job_title": title,
             "job_description": description,
             "required_skills": required_skills or [],
-            "recruiter_id": recruiter_id
+            "recruiter_id": recruiter_id,
+            "applicant_count": applicant_count
         })
     
     return jsonify({"applied_jobs": applied_jobs})
+
 
 
 # This endpoint is used for semantic style search 
