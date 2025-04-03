@@ -470,6 +470,46 @@ def match_talents():
     matches.sort(key=lambda x: -x['match_score'])
     return jsonify({"matches": matches})
 
+@app.route('/recruiter-info/<int:job_id>', methods=['GET'])
+def get_recruiter_info(job_id):
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT up.full_name, tr.company_name, tr.company_logo
+            FROM public.jobs j
+            JOIN public.talent_recruiters tr ON j.recruiter_id = tr.recruiter_id
+            JOIN public.user_profiles up ON tr.user_id = up.user_id
+            WHERE j.job_id = %s;
+        """, (job_id,))
+
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"error": "Recruiter not found for this job"}), 404
+
+        full_name, company_name, company_logo = row
+
+        return jsonify({
+            "full_name": full_name,
+            "company": company_name,
+            "profile_image": company_logo
+        })
+
+    except Exception as e:
+        print("🔥 Error in /recruiter-info:", e)
+        return jsonify({"error": "Failed to retrieve recruiter info"}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5000))
     app.run(debug=True, port=port)
