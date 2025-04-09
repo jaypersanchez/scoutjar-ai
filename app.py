@@ -143,118 +143,6 @@ def get_applied_jobs():
     
     return jsonify({"applied_jobs": applied_jobs})
 
-
-
-# This endpoint is used for semantic style search 
-'''@app.route('/search-talents', methods=['POST'])
-def search_talents():
-    query = request.json.get("query", "")
-    if not query:
-        return jsonify({"error": "Query is required"}), 400
-
-    print("🔍 Scout Search Query:", query)
-
-    conn = psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT tp.talent_id, up.full_name, up.email, tp.resume, tp.bio, tp.experience,
-               tp.skills, tp.location, tp.availability
-        FROM public.talent_profiles tp
-        JOIN public.user_profiles up ON tp.user_id = up.user_id;
-    """)
-    talents = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    if not talents:
-        return jsonify({"matches": []})
-
-    # Build document corpus: query + all talent docs
-    docs = [query]
-    for talent in talents:
-        resume, bio, exp = talent[3], talent[4], talent[5]
-        combined_text = f"{resume or ''} {bio or ''} {exp or ''}"
-        docs.append(combined_text)
-
-    # Compute similarity
-    tfidf = TfidfVectorizer(stop_words='english')
-    vectors = tfidf.fit_transform(docs)
-    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
-
-    threshold = 0.1
-    matches = []
-
-    for i, score in enumerate(scores):
-        if score >= threshold:
-            tid, name, email, resume, bio, exp, skills, location, availability = talents[i]
-
-            # Strip PII for OpenAI
-            stripped_info = {
-                "resume": resume,
-                "bio": bio,
-                "experience": exp,
-                "skills": skills,
-                "availability": availability
-            }
-
-            prompt = f"""
-You are an AI talent scout. A recruiter is looking for this: "{query}"
-
-Here is a candidate's anonymized profile:
-Resume: {stripped_info['resume']}
-Bio: {stripped_info['bio']}
-Experience: {stripped_info['experience']}
-Skills: {', '.join(stripped_info['skills'])}
-Availability: {stripped_info['availability']}
-
-Explain in 3–4 sentences why this candidate might be a good match.
-"""
-
-            explanation = ""
-            try:
-                openai_response = requests.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "gpt-3.5-turbo",
-                        "messages": [
-                            {"role": "system", "content": "You are a helpful recruiter assistant."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "temperature": 0.7
-                    }
-                )
-                openai_response.raise_for_status()
-                explanation = openai_response.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                print("OpenAI explanation failed:", e)
-                explanation = "Explanation not available."
-
-            matches.append({
-                "match_score": round(score * 100, 2),
-                "talent_id": tid,
-                "name": name,
-                "email": email,
-                "location": location,
-                "availability": availability,
-                "skills": skills,
-                "explanation": explanation
-            })
-
-    matches.sort(key=lambda x: -x['match_score'])
-    return jsonify({"matches": matches})'''
-
-
 # This endpoint is used to explain to the scout talent how a talent matches with their job post
 @app.route("/explain-match", methods=["POST"])
 def explain_match():
@@ -298,7 +186,7 @@ Based on this information, explain in 2-3 sentences why this candidate is a good
     return jsonify({ "explanation": explanation })
     
 # This endpoint is used for semantic style search 
-@app.route('/search-talents', methods=['POST'])
+'''@app.route('/search-talents', methods=['POST'])
 def search_talents():
     query = request.json.get("query", "")
     if not query:
@@ -408,7 +296,7 @@ Explain in 3–4 sentences why this candidate might be a good match.
 
     matches.sort(key=lambda x: -x['match_score'])
     return jsonify({"matches": matches})
-
+'''
 
 # This endpoint is used to return a match of talents based on scout talent job post details
 @app.route('/jobs', methods=['POST'])
@@ -469,6 +357,170 @@ def match_talents():
 
     matches.sort(key=lambda x: -x['match_score'])
     return jsonify({"matches": matches})
+    
+# search talent with suggestion 
+@app.route('/search-talents', methods=['POST'])
+def search_talents():
+    query = request.json.get("query", "")
+    if not query:
+        return jsonify({"error": "Query is required"}), 400
+
+    print("🔍 Scout Search Query:", query)
+
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
+    )
+    cursor = conn.cursor()
+
+    # ✅ Include tp.user_id in the SELECT
+    cursor.execute("""
+        SELECT tp.talent_id, tp.user_id, up.full_name, up.email, tp.resume, tp.bio, tp.experience,
+               tp.skills, tp.location, tp.availability
+        FROM public.talent_profiles tp
+        JOIN public.user_profiles up ON tp.user_id = up.user_id;
+    """)
+    talents = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    if not talents:
+        return jsonify({"matches": [], "suggestion": "No talents available at the moment."})
+
+    # Build document corpus: query + all talent docs
+    docs = [query]
+    for talent in talents:
+        resume, bio, exp = talent[4], talent[5], talent[6]
+        combined_text = f"{resume or ''} {bio or ''} {exp or ''}"
+        docs.append(combined_text)
+
+    # Compute similarity
+    tfidf = TfidfVectorizer(stop_words='english')
+    vectors = tfidf.fit_transform(docs)
+    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+
+    threshold = 0.1
+    matches = []
+
+    for i, score in enumerate(scores):
+        if score >= threshold:
+            tid, uid, name, email, resume, bio, exp, skills, location, availability = talents[i]
+
+            # Strip PII for OpenAI explanation
+            stripped_info = {
+                "resume": resume,
+                "bio": bio,
+                "experience": exp,
+                "skills": skills,
+                "availability": availability
+            }
+
+            prompt = f"""
+You are an AI talent scout. A recruiter is looking for this: "{query}"
+
+Here is a candidate's anonymized profile:
+Resume: {stripped_info['resume']}
+Bio: {stripped_info['bio']}
+Experience: {stripped_info['experience']}
+Skills: {', '.join(stripped_info['skills'])}
+Availability: {stripped_info['availability']}
+
+Explain in 3–4 sentences why this candidate might be a good match.
+"""
+
+            explanation = ""
+            try:
+                openai_response = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "gpt-3.5-turbo",
+                        "messages": [
+                            {"role": "system", "content": "You are a helpful recruiter assistant."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.7
+                    }
+                )
+                openai_response.raise_for_status()
+                explanation = openai_response.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                print("OpenAI explanation failed:", e)
+                explanation = "Explanation not available."
+
+            matches.append({
+                "match_score": round(score * 100, 2),
+                "talent_id": tid,
+                "user_id": uid,
+                "name": name,
+                "email": email,
+                "location": location,
+                "availability": availability,
+                "skills": skills,
+                "explanation": explanation
+            })
+
+    matches.sort(key=lambda x: -x['match_score'])
+
+    # 🔥 NEW PART: If no matches found, ask OpenAI to suggest improvements
+    if not matches:
+        try:
+            suggest_prompt = f"""
+You are Lookk, a helpful AI scout assistant.
+
+A scout entered the following talent search: "{query}"
+
+No exact matches were found.
+
+Please do the following:
+1. Give a polite and brief advice (1-2 sentences) on how to broaden or improve the search.
+2. Create a new refined version of the scout's original search query, making it more likely to find matching talent. 
+   - Keep it realistic, generalize if needed (e.g., "Product Manager with technical background")
+   - Keep it under 30 words if possible.
+
+Return it in this exact JSON format:
+{{
+  "advice": "...your advice here...",
+  "refined_prompt": "...your better search prompt here..."
+}}
+
+Be concise and friendly.
+"""
+
+
+
+
+            suggestion_response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "gpt-3.5-turbo",
+                    "messages": [
+                        {"role": "system", "content": "You are a helpful AI assistant."},
+                        {"role": "user", "content": suggest_prompt}
+                    ],
+                    "temperature": 0.7
+                }
+            )
+            suggestion_response.raise_for_status()
+            suggestion = suggestion_response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            print("OpenAI suggestion failed:", e)
+            suggestion = "Try adjusting your search keywords for better results."
+
+        return jsonify({"matches": [], "suggestion": suggestion})
+
+    # Normal successful return
+    return jsonify({"matches": matches})
 
 @app.route('/recruiter-info/<int:job_id>', methods=['GET'])
 def get_recruiter_info(job_id):
@@ -512,4 +564,5 @@ def get_recruiter_info(job_id):
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5000))
-    app.run(debug=True, port=port)
+    #app.run(debug=True, port=port)
+    app.run(host='0.0.0.0', port=5001)
