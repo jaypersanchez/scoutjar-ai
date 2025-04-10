@@ -562,6 +562,48 @@ def get_recruiter_info(job_id):
         return jsonify({"error": "Failed to retrieve recruiter info"}), 500
 
 
+@app.route('/suggest-skills', methods=['POST'])
+def suggest_skills():
+    data = request.json
+    job_title = data.get("job_title", "")
+    job_description = data.get("job_description", "")
+
+    if not job_title and not job_description:
+        return jsonify({"error": "Job title or description required."}), 400
+
+    prompt = f"""
+You are an expert recruiter assistant.
+
+Based on the given Job Title and Job Description, infer and generate a realistic list of required job skills even if the description is short or vague.
+
+Always provide a comma-separated list of 5 to 10 relevant skills typically needed for the role.
+
+Only return the skills list, without any explanation or extra text.
+
+Job Title: {job_title}
+Job Description: {job_description}
+"""
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.4
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
+
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to get skill suggestion from OpenAI", "details": response.text}), 500
+
+    skills_text = response.json()["choices"][0]["message"]["content"]
+    return jsonify({"suggested_skills": skills_text.strip()})
+
+
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5000))
     #app.run(debug=True, port=port)
