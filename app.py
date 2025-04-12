@@ -360,6 +360,8 @@ def match_talents():
 # search talent with suggestion 
 @app.route('/search-talents', methods=['POST'])
 def search_talents():
+    import json  # Make sure you have this at the top
+
     query = request.json.get("query", "")
     if not query:
         return jsonify({"error": "Query is required"}), 400
@@ -375,7 +377,6 @@ def search_talents():
     )
     cursor = conn.cursor()
 
-    # ✅ Include tp.user_id in the SELECT
     cursor.execute("""
         SELECT tp.talent_id, tp.user_id, up.full_name, up.email, tp.resume, tp.bio, tp.experience,
                tp.skills, tp.location, tp.availability
@@ -387,16 +388,17 @@ def search_talents():
     conn.close()
 
     if not talents:
-        return jsonify({"matches": [], "suggestion": "No talents available at the moment."})
+        return jsonify({"matches": [], "suggestion": json.dumps({
+            "advice": "No talents available at the moment.",
+            "refined_prompt": ""
+        })})
 
-    # Build document corpus: query + all talent docs
     docs = [query]
     for talent in talents:
         resume, bio, exp = talent[4], talent[5], talent[6]
         combined_text = f"{resume or ''} {bio or ''} {exp or ''}"
         docs.append(combined_text)
 
-    # Compute similarity
     tfidf = TfidfVectorizer(stop_words='english')
     vectors = tfidf.fit_transform(docs)
     scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
@@ -407,52 +409,6 @@ def search_talents():
     for i, score in enumerate(scores):
         if score >= threshold:
             tid, uid, name, email, resume, bio, exp, skills, location, availability = talents[i]
-
-            # Strip PII for OpenAI explanation
-            stripped_info = {
-                "resume": resume,
-                "bio": bio,
-                "experience": exp,
-                "skills": skills,
-                "availability": availability
-            }
-
-            prompt = f"""
-You are an AI talent scout. A recruiter is looking for this: "{query}"
-
-Here is a candidate's anonymized profile:
-Resume: {stripped_info['resume']}
-Bio: {stripped_info['bio']}
-Experience: {stripped_info['experience']}
-Skills: {', '.join(stripped_info['skills'])}
-Availability: {stripped_info['availability']}
-
-Explain in 3–4 sentences why this candidate might be a good match.
-"""
-
-            explanation = ""
-            try:
-                openai_response = requests.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "gpt-3.5-turbo",
-                        "messages": [
-                            {"role": "system", "content": "You are a helpful recruiter assistant."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "temperature": 0.7
-                    }
-                )
-                openai_response.raise_for_status()
-                explanation = openai_response.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                print("OpenAI explanation failed:", e)
-                explanation = "Explanation not available."
-
             matches.append({
                 "match_score": round(score * 100, 2),
                 "talent_id": tid,
@@ -462,12 +418,12 @@ Explain in 3–4 sentences why this candidate might be a good match.
                 "location": location,
                 "availability": availability,
                 "skills": skills,
-                "explanation": explanation
+                "explanation": ""
             })
 
     matches.sort(key=lambda x: -x['match_score'])
 
-    # 🔥 NEW PART: If no matches found, ask OpenAI to suggest improvements
+    # 🔥 If no matches, generate suggestion
     if not matches:
         try:
             suggest_prompt = f"""
@@ -479,9 +435,9 @@ No exact matches were found.
 
 Please do the following:
 1. Give a polite and brief advice (1-2 sentences) on how to broaden or improve the search.
-2. Create a new refined version of the scout's original search query, making it more likely to find matching talent. 
-   - Keep it realistic, generalize if needed (e.g., "Product Manager with technical background")
-   - Keep it under 30 words if possible.
+2. Create a new refined version of the scout's original search query, making it more likely to find matching talent.
+- Keep it realistic, generalize if needed (e.g., "Product Manager with technical background")
+- Keep it under 30 words if possible.
 
 Return it in this exact JSON format:
 {{
@@ -491,10 +447,6 @@ Return it in this exact JSON format:
 
 Be concise and friendly.
 """
-
-
-
-
             suggestion_response = requests.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
@@ -507,18 +459,34 @@ Be concise and friendly.
                         {"role": "system", "content": "You are a helpful AI assistant."},
                         {"role": "user", "content": suggest_prompt}
                     ],
-                    "temperature": 0.7
+                    "temperature": 0.4
                 }
             )
             suggestion_response.raise_for_status()
-            suggestion = suggestion_response.json()["choices"][0]["message"]["content"]
+            raw_suggestion = suggestion_response.json()["choices"][0]["message"]["content"]
+
+            try:
+                # Attempt to parse OpenAI response as JSON
+                parsed_suggestion = json.loads(raw_suggestion)
+            except json.JSONDecodeError:
+                # If OpenAI returns plain text, wrap it manually
+                parsed_suggestion = {
+                    "advice": raw_suggestion.strip(),
+                    "refined_prompt": ""
+                }
+
+            suggestion = json.dumps(parsed_suggestion)
+
         except Exception as e:
-            print("OpenAI suggestion failed:", e)
-            suggestion = "Try adjusting your search keywords for better results."
+            print("🔥 OpenAI Suggestion Error:", e)
+            suggestion = json.dumps({
+                "advice": "Try adjusting your search keywords for better results.",
+                "refined_prompt": ""
+            })
 
         return jsonify({"matches": [], "suggestion": suggestion})
 
-    # Normal successful return
+    # 🔥 Normal return if there are matches
     return jsonify({"matches": matches})
 
 @app.route('/recruiter-info/<int:job_id>', methods=['GET'])
