@@ -532,7 +532,6 @@ def get_recruiter_info(job_id):
             port=DB_PORT
         )
         cursor = conn.cursor()
-
         cursor.execute("""
             SELECT up.full_name, tr.company_name, tr.company_logo
             FROM public.jobs j
