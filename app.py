@@ -18,7 +18,6 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "yourpassword")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
-
 # This endpoint is to match a job posted in jobs table to the talent user
 @app.route('/match-jobs', methods=['POST'])
 def match_jobs_for_talent():
