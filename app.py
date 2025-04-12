@@ -645,6 +645,6 @@ def get_recruiter_info(job_id):
 
 
 if __name__ == '__main__':
-    port = int(os.getenv("FLASK_PORT", 5000))
-    #app.run(debug=True, port=port)
-    app.run(host='0.0.0.0', port=5001)
+    port = int(os.getenv("FLASK_PORT", 5001))
+    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    app.run(host=host, port=port)
