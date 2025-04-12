@@ -3,7 +3,7 @@ name: Deploy Scoutjar-AI to Dev Server
 on:
   push:
     branches:
-      - dev   # <-- or mvp0.1 if you want
+      - mvp0.1   # <-- or mvp0.1 if you want
 
 jobs:
   deploy:
