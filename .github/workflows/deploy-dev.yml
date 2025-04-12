@@ -1,0 +1,37 @@
+name: Deploy Scoutjar-AI to Dev Server
+
+on:
+  push:
+    branches:
+      - dev   # <-- or mvp0.1 if you want
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Deploy to GCP server
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.GCP_SERVER_IP }}
+        username: ${{ secrets.GCP_DEPLOY_USER }}
+        key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+        script: |
+          mkdir -p ~/projects/scoutjar
+          cd ~/projects/scoutjar
+          if [ ! -d "scoutjar-ai" ]; then
+            git clone https://github.com/jaypersanchez/scoutjar-ai.git
+          fi
+          cd scoutjar-ai
+          git pull origin dev
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          pm2 delete scoutjar-ai || true
+          pm2 start venv/bin/python3 --name scoutjar-ai -- app.py
+          pm2 save
