@@ -25,7 +25,7 @@ kill -9 $(lsof -t -i :5001) || true
 pm2 delete scoutjar-ai-mvp0.1 || true
 
 # Start the Flask app with pm2
-pm2 start "python3 app.py" --name "scoutjar-ai-mvp0.1"
+pm2 start "python3 app.py" --name "scoutjar-ai-mvp0.1" --no-autorestart --time
 
 # Save the pm2 process list
 pm2 save
