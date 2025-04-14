@@ -17,10 +17,12 @@ echo "🔖 Commit: $(git rev-parse --short HEAD)"
 # Install Python dependencies if needed
 pip install -r requirements.txt
 
-# Kill anything using port 5001
-fuser -k 5001/tcp || true
+# Kill any manual python3 process or leftovers on port 5001
+echo "🔪 Killing any process using port 5001..."
+kill -9 $(lsof -t -i :5001) || true
+
 # Stop any existing scoutjar-ai process
-pm2 delete scoutjar-ai || true
+pm2 delete scoutjar-ai-mvp0.1 || true
 
 # Start the Flask app with pm2
 pm2 start "python3 app.py" --name "scoutjar-ai-mvp0.1"
