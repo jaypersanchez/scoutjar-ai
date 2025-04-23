@@ -8,7 +8,7 @@ source venv/bin/activate
 
 # Pull latest code
 git fetch origin
-git reset --hard origin/mvp0.1
+# git reset --hard origin/mvp0.1
 
 # Show current branch and commit
 echo "🛠 Branch: $(git rev-parse --abbrev-ref HEAD)"
@@ -28,7 +28,7 @@ kill -9 $(lsof -t -i :5001) || true
 
 # Start the Flask app with pm2
 # pm2 start "python3 app.py" --name "scoutjar-ai-mvp0.1" --no-autorestart --time
-pm2 start "gunicorn -b 0.0.0.0:5001 app:app" --name "scoutjar-ai-mvp0.1" --time
+pm2 start "gunicorn -b 0.0.0.0:5001 app:app --timeout 180 --workers 2" --name "scoutjar-ai-mvp0.1" --time
 
 # Save the pm2 process list
 pm2 save

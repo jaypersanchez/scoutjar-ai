@@ -7,6 +7,8 @@ from flask_cors import CORS
 import requests
 from dotenv import load_dotenv
 load_dotenv()
+from utils.explanation import generate_match_explanation
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -569,7 +571,133 @@ Job Description: {job_description}
     skills_text = response.json()["choices"][0]["message"]["content"]
     return jsonify({"suggested_skills": skills_text.strip()})
 
+# ... (other import statements)
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import psycopg2
+import os
+import time
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from dotenv import load_dotenv
+from utils.explanation import generate_match_explanation
+
+load_dotenv()
+
+app = Flask(__name__)
+CORS(app)
+
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+
+@app.route('/ai-match-talents', methods=['POST'])
+def ai_match_talents():
+    data = request.json
+
+    job_title = data.get("job_title", "")
+    job_description = data.get("job_description", "")
+    required_skills = data.get("required_skill", "")
+    industry_experience = data.get("industry_experience", "")
+    years_experience = data.get("years_experience", 0)
+    match_threshold = data.get("match_percentage", 50) / 100.0
+
+    job_vector = f"{job_title} {job_description} {required_skills} {industry_experience} {years_experience}"
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT tp.talent_id, tp.resume, tp.bio, tp.experience, tp.skills, tp.industry_experience,
+                   tp.years_experience, tp.desired_salary, tp.location, tp.work_preferences,
+                   tp.availability, up.full_name, up.email
+            FROM public.talent_profiles tp
+            JOIN public.user_profiles up ON tp.user_id = up.user_id;
+        """)
+
+        talents = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print("🔥 Error fetching talent profiles:", e)
+        return jsonify({"error": "Database error"}), 500
+
+    job_doc = [job_vector]
+    talent_docs = [
+        f"{resume or ''} {bio or ''} {exp or ''} {' '.join(skills or [])} {' '.join(industry or [])} {years or 0}"
+        for (_, resume, bio, exp, skills, industry, years, _, _, _, _, _, _) in talents
+    ]
+
+    tfidf = TfidfVectorizer(stop_words='english')
+    vectors = tfidf.fit_transform(job_doc + talent_docs)
+    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+
+    top_matches = sorted(
+        [(i, score) for i, score in enumerate(scores) if score >= match_threshold],
+        key=lambda x: -x[1]
+    )[:25]  # Top 25 for now
+
+    results = []
+    for i, score in top_matches:
+        tid, resume, bio, exp, skills, industry, years, salary, location, work_preferences, availability, name, email = talents[i]
+
+        try:
+            start_time = time.time()
+            explanation = generate_match_explanation(
+                {
+                    "title": job_title,
+                    "description": job_description,
+                    "skills": required_skills
+                },
+                {
+                    "name": name,
+                    "resume": resume,
+                    "bio": bio,
+                    "experience": exp,
+                    "skills": skills or []
+                }
+            )
+            elapsed = round(time.time() - start_time, 2)
+            print(f"⏱ Explanation for talent_id {tid} took {elapsed} seconds")
+        except Exception as e:
+            print(f"❌ Failed to get explanation for talent_id {tid}:", e)
+            explanation = "Explanation not available."
+
+        results.append({
+            "talent_id": tid,
+            "full_name": name,
+            "email": email,
+            "resume": resume,
+            "bio": bio,
+            "experience": exp,
+            "skills": skills,
+            "industry_experience": industry,
+            "years_experience": years,
+            "desired_salary": salary,
+            "location": location,
+            "work_preferences": work_preferences,
+            "availability": availability,
+            "match_score": round(score * 100, 2),
+            "explanation": explanation
+        })
+
+    results.sort(key=lambda x: -x["match_score"])
+    return jsonify({"matches": results})
+
+
+'''
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     app.run(host=host, port=port)
+    '''
