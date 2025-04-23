@@ -706,6 +706,79 @@ def get_all_job_titles():
         print("🔥 Error fetching job titles:", e)
         return jsonify([]), 500
 
+# This is for short list of talents that recruiter have approach but not necessarily tied to a job
+@app.route("/ai-shortlist", methods=["POST"])
+def ai_shortlist():
+    data = request.json
+    recruiter_id = data.get("recruiter_id")
+    talent_id = data.get("talent_id")
+    job_id = data.get("job_id")  # optional
+
+    if not recruiter_id or not talent_id:
+        return jsonify({"error": "Missing recruiter_id or talent_id"}), 400
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD,
+            host=DB_HOST, port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO ai_shortlisted (recruiter_id, talent_id, job_id)
+            VALUES (%s, %s, %s)
+            ON CONFLICT DO NOTHING;
+        """, (recruiter_id, talent_id, job_id))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Talent AI-shortlisted successfully."})
+
+    except Exception as e:
+        print("🔥 AI Shortlist error:", e)
+        return jsonify({"error": "Shortlist failed"}), 500
+
+@app.route("/ai-shortlisted-candidates", methods=["POST"])
+def get_ai_shortlisted_candidates():
+    data = request.json
+    recruiter_id = data.get("recruiter_id")
+
+    if not recruiter_id:
+        return jsonify({"error": "Missing recruiter_id"}), 400
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD,
+            host=DB_HOST, port=DB_PORT
+        )
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT a.id AS shortlist_id, a.talent_id, a.created_at AS added_at,
+                   up.full_name, up.email
+            FROM ai_shortlisted a
+            JOIN talent_profiles tp ON a.talent_id = tp.talent_id
+            JOIN user_profiles up ON tp.user_id = up.user_id
+            WHERE a.recruiter_id = %s;
+        """, (recruiter_id,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return jsonify([
+            {
+                "shortlist_id": row[0],
+                "talent_id": row[1],
+                "added_at": row[2],
+                "full_name": row[3],
+                "email": row[4]
+            } for row in rows
+        ])
+    except Exception as e:
+        print("🔥 AI Shortlist Fetch Error:", e)
+        return jsonify({"error": "Failed to fetch AI-shortlisted candidates"}), 500
+
+
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
