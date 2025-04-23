@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from utils.explanation import generate_match_explanation
 import time
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -568,30 +569,20 @@ Job Description: {job_description}
     if response.status_code != 200:
         return jsonify({"error": "Failed to get skill suggestion from OpenAI", "details": response.text}), 500
 
-    skills_text = response.json()["choices"][0]["message"]["content"]
-    return jsonify({"suggested_skills": skills_text.strip()})
+    #skills_text = response.json()["choices"][0]["message"]["content"]
+    #return jsonify({"suggested_skills": skills_text.strip()})
+    raw_text = response.json()["choices"][0]["message"]["content"].strip()
 
-# ... (other import statements)
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import psycopg2
-import os
-import time
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from dotenv import load_dotenv
-from utils.explanation import generate_match_explanation
+    # Split on newline or comma
+    if "\n" in raw_text:
+        lines = re.split(r"[-•\d.]*\s*", raw_text)
+        skills = [s.strip() for s in lines if s.strip()]
+    else:
+        skills = [s.strip() for s in raw_text.split(",") if s.strip()]
 
-load_dotenv()
+    normalized = ", ".join(skills)
+    return jsonify({"suggested_skills": normalized})
 
-app = Flask(__name__)
-CORS(app)
-
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
 
 @app.route('/ai-match-talents', methods=['POST'])
 def ai_match_talents():
@@ -694,10 +685,30 @@ def ai_match_talents():
     results.sort(key=lambda x: -x["match_score"])
     return jsonify({"matches": results})
 
+@app.route("/job-titles/all", methods=["GET"])
+def get_all_job_titles():
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT job_title FROM job_titles ORDER BY job_title ASC;")
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-'''
+        return jsonify([row[0] for row in rows])
+    except Exception as e:
+        print("🔥 Error fetching job titles:", e)
+        return jsonify([]), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     app.run(host=host, port=port)
-    '''
+    
