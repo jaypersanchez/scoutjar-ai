@@ -792,8 +792,18 @@ def extract_text_from_file(file_path, extension):
             with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read()
         elif extension == 'pdf':
-            reader = PdfReader(file_path)
-            return "\n".join([page.extract_text() or '' for page in reader.pages])
+            print(f"📄 Processing uploaded PDF: {file_path}, size: {os.path.getsize(file_path)} bytes")
+            try:
+                reader = PdfReader(file_path)
+                text = []
+                for page in reader.pages:
+                    content = page.extract_text()
+                    if content:
+                        text.append(content)
+                return "\n".join(text).strip() or "No readable text found in PDF."
+            except Exception as e:
+                print(f"🔥 PDF parsing failed: {e}")
+                return None
         elif extension == 'docx':
             doc = Document(file_path)
             return "\n".join([para.text for para in doc.paragraphs])
@@ -841,7 +851,7 @@ def upload_resume():
         cursor.close()
         conn.close()
 
-        return jsonify({"message": "Resume updated successfully"})
+        return jsonify({"message": "Resume uploaded and saved successfully"})
     except Exception as e:
         print("🔥 DB Error:", e)
         return jsonify({"error": "Database update failed"}), 500
