@@ -10,6 +10,11 @@ load_dotenv()
 from utils.explanation import generate_match_explanation
 import time
 import re
+from werkzeug.utils import secure_filename
+from PyPDF2 import PdfReader
+from docx import Document
+from datetime import datetime, timedelta
+import random
 
 app = Flask(__name__)
 CORS(app)
@@ -778,7 +783,168 @@ def get_ai_shortlisted_candidates():
         print("🔥 AI Shortlist Fetch Error:", e)
         return jsonify({"error": "Failed to fetch AI-shortlisted candidates"}), 500
 
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx'}
 
+# Fictional resume creator for data testing
+def extract_text_from_file(file_path, extension):
+    try:
+        if extension == 'txt':
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        elif extension == 'pdf':
+            reader = PdfReader(file_path)
+            return "\n".join([page.extract_text() or '' for page in reader.pages])
+        elif extension == 'docx':
+            doc = Document(file_path)
+            return "\n".join([para.text for para in doc.paragraphs])
+        else:
+            return None
+    except Exception as e:
+        print(f"🔥 Failed to extract text: {e}")
+        return None
+
+@app.route("/upload-resume", methods=["POST"])
+def upload_resume():
+    talent_id = request.form.get("talent_id")
+    file = request.files.get("file")
+
+    if not talent_id or not file:
+        return jsonify({"error": "Missing file or talent_id"}), 400
+
+    filename = secure_filename(file.filename)
+    extension = filename.rsplit('.', 1)[-1].lower()
+
+    if extension not in ALLOWED_EXTENSIONS:
+        return jsonify({"error": "Unsupported file type"}), 400
+
+    temp_path = os.path.join("/tmp", filename)
+    file.save(temp_path)
+
+    extracted_text = extract_text_from_file(temp_path, extension)
+    os.remove(temp_path)
+
+    if not extracted_text:
+        return jsonify({"error": "Failed to extract text"}), 500
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD,
+            host=DB_HOST, port=DB_PORT
+        )
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE talent_profiles
+            SET resume = %s
+            WHERE talent_id = %s
+        """, (extracted_text.strip(), talent_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Resume updated successfully"})
+    except Exception as e:
+        print("🔥 DB Error:", e)
+        return jsonify({"error": "Database update failed"}), 500
+
+@app.route("/generate-fictional-resumes", methods=["POST"])
+def generate_fictional_resumes():
+    try:
+        talent_id = request.json.get("talent_id") if request.is_json else None
+
+        conn = psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD,
+            host=DB_HOST, port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        if talent_id:
+            cursor.execute("""
+                SELECT tp.talent_id, up.full_name, up.email, tp.bio, tp.experience, tp.skills, tp.industry_experience,
+                       tp.education, tp.location, tp.available_from
+                FROM talent_profiles tp
+                JOIN user_profiles up ON tp.user_id = up.user_id
+                WHERE tp.talent_id = %s;
+            """, (talent_id,))
+        else:
+            cursor.execute("""
+                SELECT tp.talent_id, up.full_name, up.email, tp.bio, tp.experience, tp.skills, tp.industry_experience,
+                       tp.education, tp.location, tp.available_from
+                FROM talent_profiles tp
+                JOIN user_profiles up ON tp.user_id = up.user_id;
+            """)
+
+        records = cursor.fetchall()
+
+        companies = ["NeoTech Solutions", "Bluewave Systems", "CodeCraft Inc.", "NextGen Innovations", "SkyRocket Labs"]
+        roles = ["Software Engineer", "Backend Developer", "Frontend Developer", "Fullstack Engineer", "DevOps Specialist"]
+        actions = [
+            "Led the development of key platform features",
+            "Collaborated with cross-functional teams to deliver scalable solutions",
+            "Optimized performance and reduced load times by 40%",
+            "Integrated third-party APIs and services",
+            "Implemented CI/CD pipelines to streamline deployment",
+            "Mentored junior developers and conducted code reviews"
+        ]
+
+        for (tid, name, email, bio, exp, skills, industries, edu, loc, avail) in records:
+            num_jobs = random.randint(3, 5)
+            start_year = datetime.now().year - num_jobs
+            work_sections = []
+
+            for i in range(num_jobs):
+                job_title = random.choice(roles)
+                company = random.choice(companies)
+                city = loc or "Remote"
+                start = datetime(start_year + i, random.randint(1, 6), 1)
+                end = start + timedelta(days=365 * random.randint(1, 2))
+                responsibilities = random.sample(actions, 2)
+                bullet_points = "\n   - " + "\n   - ".join(responsibilities)
+                work_sections.append(f"{job_title} at {company}\n{start.strftime('%b %Y')} – {end.strftime('%b %Y')} | {city}{bullet_points}")
+
+            summary = bio.strip() if bio else "Motivated and skilled professional with experience in diverse technology domains."
+            skill_str = ", ".join(skills or ["Communication", "Teamwork", "Problem-solving"])
+            industry_str = ", ".join(industries or ["Technology"])
+            education_str = edu or "Bachelor's Degree"
+            location_str = loc or "Remote"
+            available_str = avail.strftime("%B %d, %Y") if avail else "N/A"
+            exp_context = exp.strip() if exp else f"Contributed significantly in the {industry_str} domain."
+
+            resume = f"""
+{name}
+{location_str} | {email}
+
+Summary:
+{summary}
+
+Core Competencies:
+{skill_str}
+
+Work Experience:
+{chr(10).join(work_sections)}
+
+Additional Experience:
+{exp_context}
+
+Education:
+{education_str}
+
+Availability:
+{available_str}
+""".strip()
+
+            cursor.execute("""
+                UPDATE talent_profiles SET resume = %s WHERE talent_id = %s;
+            """, (resume, tid))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Enhanced fictional resumes generated successfully."})
+
+    except Exception as e:
+        print("🔥 Error generating enhanced resumes:", e)
+        return jsonify({"error": "Internal server error."}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
