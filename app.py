@@ -535,6 +535,58 @@ def get_recruiter_info(job_id):
         print("🔥 Error in /recruiter-info:", e)
         return jsonify({"error": "Failed to retrieve recruiter info"}), 500
 
+@app.route('/suggest-fields', methods=['POST'])
+def suggest_fields():
+    data = request.json
+    job_title = data.get("job_title", "")
+    job_description = data.get("job_description", "")
+
+    if not job_title and not job_description:
+        return jsonify({"error": "Job title or description required."}), 400
+
+    prompt = f"""
+You are an AI recruiter assistant.
+
+Given the following Job Title and Job Description, infer:
+- 5 to 10 important Skills (comma-separated)
+- The likely Industry (IT, Finance, Healthcare, etc.)
+- The average Years of Experience typically required.
+
+Respond exactly in JSON like this:
+
+{{
+  "suggested_skills": "skill1, skill2, skill3",
+  "industry_experience": "industry_name",
+  "years_experience": number
+}}
+
+Job Title: {job_title}
+Job Description: {job_description}
+"""
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
+
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to get suggestion from AI"}), 500
+
+    try:
+        suggestion = response.json()["choices"][0]["message"]["content"]
+        import json
+        parsed = json.loads(suggestion)
+        return jsonify(parsed)
+    except Exception as e:
+        return jsonify({"error": f"Failed to parse AI response: {str(e)}"}), 500
+
 
 @app.route('/suggest-skills', methods=['POST'])
 def suggest_skills():
