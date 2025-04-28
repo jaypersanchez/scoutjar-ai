@@ -535,7 +535,7 @@ def get_recruiter_info(job_id):
         print("🔥 Error in /recruiter-info:", e)
         return jsonify({"error": "Failed to retrieve recruiter info"}), 500
 
-@app.route('/suggest-fields', methods=['POST'])
+@app.route('/suggest-fields/old', methods=['POST'])
 def suggest_fields():
     data = request.json
     job_title = data.get("job_title", "")
@@ -741,6 +741,62 @@ def ai_match_talents():
 
     results.sort(key=lambda x: -x["match_score"])
     return jsonify({"matches": results})
+
+
+@app.route("/suggest-fields", methods=["POST"])
+def suggest_fields():
+    try:
+        data = request.json
+        job_title = data.get("job_title", "").strip()
+        job_description = data.get("job_description", "").strip()
+
+        if not job_title or not job_description:
+            return jsonify({"error": "Job title and job description are required."}), 400
+
+        prompt = f"""
+You are an AI recruiting assistant.
+
+Given the following Job Title and Job Description, intelligently suggest:
+- 5 to 10 required Skills (comma-separated)
+- The most likely Industry (IT, Finance, Healthcare, Human Capital, etc.)
+- The average Years of Experience expected
+- The likely Employment Type (Full-Time, Part-Time, Contract)
+- A reasonable Expected Salary Range in USD (e.g., "$50,000 - $70,000")
+- Recommended Work Mode (Remote, On-site, Hybrid)
+- Potential City/Country locations if mentioned
+
+Important Instructions:
+- If the job mentions human resources, recruiting, staffing, or talent acquisition, prioritize Human Capital as the industry.
+- Provide a JSON response like this:
+
+{{
+  "suggested_skills": "skill1, skill2, skill3",
+  "industry_experience": "industry_name",
+  "years_experience": number,
+  "employment_type": "employment_type",
+  "expected_salary_range": "salary range",
+  "work_mode": "work mode",
+  "locations": "location1, location2"
+}}
+
+Job Title: {job_title}
+Job Description: {job_description}
+"""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=500,
+        )
+
+        content = response['choices'][0]['message']['content']
+        suggestions = eval(content)  # Since we're expecting strict JSON format
+        return jsonify(suggestions)
+
+    except Exception as e:
+        print("Error during suggest_fields:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/job-titles/all", methods=["GET"])
 def get_all_job_titles():
