@@ -95,7 +95,7 @@ def match_jobs_for_talent():
                     "description": job[2],
                     "skills_required": job[3],
                     "recruiter_id": job[4],
-                    "match_score": round(score * 100, 2)
+                    "match_score": round((score ** 0.5) * 100, 2)
                 })
 
         matches.sort(key=lambda x: -x['match_score'])
