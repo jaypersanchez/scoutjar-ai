@@ -8,7 +8,7 @@ source venv/bin/activate
 
 # Pull latest code
 git fetch origin
-# git reset --hard origin/mvp0.1
+git reset --hard origin/mvp0.1
 
 # Show current branch and commit
 echo "🛠 Branch: $(git rev-parse --abbrev-ref HEAD)"
