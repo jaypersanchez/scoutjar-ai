@@ -665,7 +665,7 @@ def ai_match_talents():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT tp.talent_id, tp.resume, tp.bio, tp.experience, tp.skills, tp.industry_experience,
+            SELECT tp.talent_id, tp.user_id, tp.resume, tp.bio, tp.experience, tp.skills, tp.industry_experience,
                    tp.years_experience, tp.desired_salary, tp.location, tp.work_preferences,
                    tp.availability, up.full_name, up.email
             FROM public.talent_profiles tp
