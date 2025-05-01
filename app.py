@@ -683,7 +683,7 @@ def ai_match_talents():
     job_doc = [job_vector]
     talent_docs = [
         f"{resume or ''} {bio or ''} {exp or ''} {' '.join(skills or [])} {' '.join(industry or [])} {years or 0}"
-        for (_, resume, bio, exp, skills, industry, years, _, _, _, _, _, _) in talents
+        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _) in talents
     ]
 
     tfidf = TfidfVectorizer(stop_words='english')
@@ -697,7 +697,7 @@ def ai_match_talents():
 
     results = []
     for i, score in top_matches:
-        tid, resume, bio, exp, skills, industry, years, salary, location, work_preferences, availability, name, email = talents[i]
+        tid, uid, resume, bio, exp, skills, industry, years, salary, location, work_preferences, availability, name, email = talents[i]
 
         try:
             start_time = time.time()
@@ -723,6 +723,7 @@ def ai_match_talents():
 
         results.append({
             "talent_id": tid,
+            "user_id":uid,
             "full_name": name,
             "email": email,
             "resume": resume,
