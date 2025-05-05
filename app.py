@@ -15,6 +15,7 @@ from PyPDF2 import PdfReader
 from docx import Document
 from datetime import datetime, timedelta
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 CORS(app)
@@ -640,7 +641,6 @@ Job Description: {job_description}
     normalized = ", ".join(skills)
     return jsonify({"suggested_skills": normalized})
 
-
 @app.route('/ai-match-talents', methods=['POST'])
 def ai_match_talents():
     data = request.json
@@ -693,15 +693,13 @@ def ai_match_talents():
     top_matches = sorted(
         [(i, score) for i, score in enumerate(scores) if score >= match_threshold],
         key=lambda x: -x[1]
-    )[:25]  # Top 25 for now
+    )[:10]
 
-    results = []
-    for i, score in top_matches:
+    # 👇 Parallel explanation builder
+    def build_result(i, score):
         tid, uid, resume, bio, exp, skills, industry, years, salary, location, work_preferences, availability, name, email = talents[i]
-
         try:
-            start_time = time.time()
-            explanation = generate_match_explanation(
+            explanation = "" '''generate_match_explanation(
                 {
                     "title": job_title,
                     "description": job_description,
@@ -714,16 +712,14 @@ def ai_match_talents():
                     "experience": exp,
                     "skills": skills or []
                 }
-            )
-            elapsed = round(time.time() - start_time, 2)
-            print(f"⏱ Explanation for talent_id {tid} took {elapsed} seconds")
+            )'''
         except Exception as e:
             print(f"❌ Failed to get explanation for talent_id {tid}:", e)
             explanation = "Explanation not available."
 
-        results.append({
+        return {
             "talent_id": tid,
-            "user_id":uid,
+            "user_id": uid,
             "full_name": name,
             "email": email,
             "resume": resume,
@@ -738,10 +734,46 @@ def ai_match_talents():
             "availability": availability,
             "match_score": round(score * 100, 2),
             "explanation": explanation
-        })
+        }
+
+    results = []
+    
+    import traceback
+
+    results = []
+    errors = []
+
+    def safe_result(future):
+        try:
+            return future.result()
+        except Exception as e:
+            errors.append(str(e))
+            traceback.print_exc()
+            return None
+
+    try:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(build_result, i, score) for i, score in top_matches]
+            for future in as_completed(futures):
+                result = safe_result(future)
+                if result:
+                    results.append(result)
+
+        results.sort(key=lambda x: -x["match_score"])
+
+        if errors:
+            print("⚠️ One or more match explanations failed.")
+        return jsonify({"matches": results})
+    except Exception as e:
+        print("🔥 Critical error in /ai-match-talents:")
+        traceback.print_exc()
+        return jsonify({"error": "Internal server error"}), 500
+
 
     results.sort(key=lambda x: -x["match_score"])
     return jsonify({"matches": results})
+
+
 
 @app.route("/job-titles/all", methods=["GET"])
 def get_all_job_titles():
