@@ -1041,6 +1041,68 @@ Availability:
         print("🔥 Error generating enhanced resumes:", e)
         return jsonify({"error": "Internal server error."}), 500
 
+@app.route('/prefill-job-from-title', methods=['POST'])
+def prefill_job_from_title():
+    data = request.get_json()
+    job_title = data.get("job_title", "").strip()
+    job_description = data.get("job_description", "").strip()
+
+    if not job_title and not job_description:
+        return jsonify({"error": "Job title or description is required."}), 400
+
+    prompt = f"""
+You are an expert technical recruiter assistant.
+
+Given the following job details:
+- Job Title: "{job_title}"
+- Job Description: "{job_description or 'N/A'}"
+
+Generate a realistic and complete job listing with:
+- A detailed 3–5 paragraph job description (include responsibilities and qualifications).
+- A comma-separated list of relevant skills.
+- The expected experience level (Junior, Mid, Senior).
+- Work mode (Remote, On-site, Hybrid).
+- Employment type (Full-time, Part-time, Contract).
+- Salary range in USD (min, max).
+
+Respond ONLY in this exact JSON format:
+
+{{
+  "job_description": "long detailed string",
+  "required_skills": "skill1, skill2, skill3",
+  "experience_level": "Senior",
+  "work_mode": "Remote",
+  "employment_type": "Full-time",
+  "salary_min": 6000,
+  "salary_max": 8500
+}}
+"""
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.4
+    }
+
+    try:
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        response.raise_for_status()
+        raw = response.json()["choices"][0]["message"]["content"]
+
+        import json
+        result = json.loads(raw)
+        return jsonify(result)
+
+    except Exception as e:
+        print("🔥 Error parsing OpenAI response:", e)
+        return jsonify({"error": "Failed to parse AI response"}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
