@@ -786,12 +786,13 @@ def get_all_job_titles():
             port=DB_PORT
         )
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT job_title FROM job_titles ORDER BY job_title ASC;")
+        cursor.execute("SELECT DISTINCT job_title, job_description FROM job_titles ORDER BY job_title ASC;")
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        return jsonify([row[0] for row in rows])
+        #return jsonify([row[0] for row in rows])
+        return jsonify([{"job_title": row[0], "job_description": row[1]} for row in rows])
     except Exception as e:
         print("🔥 Error fetching job titles:", e)
         return jsonify([]), 500
