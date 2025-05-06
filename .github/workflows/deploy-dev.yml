@@ -1,0 +1,27 @@
+name: Deploy Scoutjar-AI to Dev Server
+
+on:
+  push:
+    branches:
+      - mvp0.1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: SSH into server and run AI deploy script
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.GCP_SERVER_IP }}
+        username: ${{ secrets.GCP_DEPLOY_USER }}
+        key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+        script: |
+          cd ~/projects/scoutjar/scoutjar-ai
+          chmod +x start-app.sh
+          ./start-app.sh

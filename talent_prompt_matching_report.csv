@@ -1,0 +1,725 @@
+Talent ID,Prompt,Top Match Talent ID,Match Score,Matched Self?,Explanation
+42,"Looking for a professional with the following background:
+Software Architect with over 15 years of experience in the industry.
+
+Should have experience in:
+Worked in San Francisco, CA as a Software Architect handling critical responsibilities.
+
+Skills must include:
+Leadership, React, Customer Support, Project Management",42,47.74,No,
+43,"Looking for a professional with the following background:
+Account Executive (AE) with over 13 years of experience in the industry.
+
+Should have experience in:
+Worked in San Francisco, CA as a Account Executive (AE) handling critical responsibilities.
+
+Skills must include:
+Leadership, React, Node.js, Cloud Computing, Customer Support",59,57.45,No,
+47,"Looking for a professional with the following background:
+VP of Human Resources with over 1 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a VP of Human Resources handling critical responsibilities.
+
+Skills must include:
+SQL, Communication, Leadership",47,59.57,No,
+41,"Looking for a professional with the following background:
+Executive Assistant with over 6 years of experience in the industry.
+
+Should have experience in:
+Worked in Austin, TX as a Executive Assistant handling critical responsibilities.
+
+Skills must include:
+Cloud Computing, Customer Support, Python, JavaScript, HR Management",41,53.43,No,
+69,"Looking for a professional with the following background:
+Executive Assistant with over 6 years of experience in the industry.
+
+Should have experience in:
+Worked in Boston, MA as a Executive Assistant handling critical responsibilities.
+
+Skills must include:
+Node.js, Salesforce, Cloud Computing, HR Management",69,53.21,No,
+75,"Looking for a professional with the following background:
+Professional from Germany experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Germany.
+
+Skills must include:
+Python, Communication, Teamwork",75,56.82,No,
+115,"Looking for a professional with the following background:
+Elizabeth Montgomery is a professional in marketing, focused on roles such as content marketing manager. Face same to environmental seem various. Too interview economy when popular sound.
+
+Should have experience in:
+Teach couple easy traditional young sort. Very son dark professor. Night force explain wonder water alone.
+
+Skills must include:
+Email Marketing, Social Media Marketing, Content Strategy, Copywriting, SEO",115,65.74,No,
+48,"Looking for a professional with the following background:
+Executive Assistant with over 13 years of experience in the industry.
+
+Should have experience in:
+Worked in Miami, FL as a Executive Assistant handling critical responsibilities.
+
+Skills must include:
+Customer Support, Communication, Project Management",41,53.47,No,
+49,"Looking for a professional with the following background:
+Customer Education Specialist with over 5 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Customer Education Specialist handling critical responsibilities.
+
+Skills must include:
+Project Management, JavaScript, Customer Support",49,43.09,No,
+45,"Looking for a professional with the following background:
+Software Engineer with over 4 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Software Engineer handling critical responsibilities.
+
+Skills must include:
+JavaScript, React, Leadership, Cloud Computing",45,47.14,No,
+50,"Looking for a professional with the following background:
+Account Executive (AE) with over 6 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Account Executive (AE) handling critical responsibilities.
+
+Skills must include:
+HR Management, Node.js, Communication, Leadership",50,59.09,No,
+80,"Looking for a professional with the following background:
+Professional from Austria experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Austria.
+
+Skills must include:
+Python, Communication, Teamwork",80,53.84,No,
+117,"Looking for a professional with the following background:
+Crystal Meyer is a professional in software, focused on roles such as full stack developer. Beat whole cell task. Note available year range black wrong letter.
+
+Should have experience in:
+Question cause national all expert receive somebody. Federal president police change among view sister pattern.
+
+Skills must include:
+APIs, JavaScript, SQL, React, Node.js",117,71.98,No,
+44,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 3 years of experience in the industry.
+
+Should have experience in:
+Worked in Miami, FL as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+React, Cloud Computing, JavaScript",58,60.43,No,
+51,"Looking for a professional with the following background:
+Customer Education Specialist with over 15 years of experience in the industry.
+
+Should have experience in:
+Worked in Seattle, WA as a Customer Education Specialist handling critical responsibilities.
+
+Skills must include:
+Customer Support, Salesforce, Node.js, Communication, HR Management, SQL",51,54.23,No,
+52,"Looking for a professional with the following background:
+Software Engineer with over 9 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Software Engineer handling critical responsibilities.
+
+Skills must include:
+Leadership, HR Management, Python, Cloud Computing, Node.js",70,39.5,No,
+53,"Looking for a professional with the following background:
+Executive Assistant with over 5 years of experience in the industry.
+
+Should have experience in:
+Worked in Chicago, IL as a Executive Assistant handling critical responsibilities.
+
+Skills must include:
+SQL, Cloud Computing, Project Management, React, Leadership",53,42.12,No,
+54,"Looking for a professional with the following background:
+Customer Education Specialist with over 8 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Customer Education Specialist handling critical responsibilities.
+
+Skills must include:
+HR Management, SQL, Communication, Customer Support",54,42.76,No,
+55,"Looking for a professional with the following background:
+Account Executive (AE) with over 15 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Account Executive (AE) handling critical responsibilities.
+
+Skills must include:
+Cloud Computing, HR Management, Customer Support, Python, Communication",50,53.88,No,
+56,"Looking for a professional with the following background:
+Executive Assistant with over 14 years of experience in the industry.
+
+Should have experience in:
+Worked in Seattle, WA as a Executive Assistant handling critical responsibilities.
+
+Skills must include:
+Customer Support, Leadership, Python",56,59.65,No,
+57,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 15 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+Cloud Computing, Communication, Leadership",58,65.7,No,
+58,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 12 years of experience in the industry.
+
+Should have experience in:
+Worked in Miami, FL as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+Python, Communication, React, HR Management, Cloud Computing, Node.js",58,64.39,No,
+59,"Looking for a professional with the following background:
+Account Executive (AE) with over 12 years of experience in the industry.
+
+Should have experience in:
+Worked in Chicago, IL as a Account Executive (AE) handling critical responsibilities.
+
+Skills must include:
+HR Management, React, Python",59,55.62,No,
+60,"Looking for a professional with the following background:
+Customer Education Specialist with over 12 years of experience in the industry.
+
+Should have experience in:
+Worked in Seattle, WA as a Customer Education Specialist handling critical responsibilities.
+
+Skills must include:
+Project Management, Communication, Node.js",51,49.02,No,
+61,"Looking for a professional with the following background:
+Software Architect with over 9 years of experience in the industry.
+
+Should have experience in:
+Worked in Seattle, WA as a Software Architect handling critical responsibilities.
+
+Skills must include:
+JavaScript, Project Management, Node.js, React, Customer Support, Leadership",61,44.59,No,
+62,"Looking for a professional with the following background:
+Software Engineer with over 13 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Software Engineer handling critical responsibilities.
+
+Skills must include:
+React, Node.js, HR Management",70,37.16,No,
+63,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 8 years of experience in the industry.
+
+Should have experience in:
+Worked in Seattle, WA as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+Node.js, Python, Customer Support",63,57.55,No,
+64,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 14 years of experience in the industry.
+
+Should have experience in:
+Worked in Austin, TX as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+Salesforce, Leadership, Customer Support, Node.js",58,53.36,No,
+65,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 14 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+Python, Project Management, JavaScript, Customer Support, React",63,62.17,No,
+66,"Looking for a professional with the following background:
+Customer Education Specialist with over 12 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Customer Education Specialist handling critical responsibilities.
+
+Skills must include:
+Cloud Computing, Salesforce, HR Management, Customer Support",66,43.13,No,
+67,"Looking for a professional with the following background:
+Customer Education Specialist with over 12 years of experience in the industry.
+
+Should have experience in:
+Worked in Miami, FL as a Customer Education Specialist handling critical responsibilities.
+
+Skills must include:
+Project Management, Salesforce, Leadership",49,46.32,No,
+68,"Looking for a professional with the following background:
+Account Executive (AE) with over 6 years of experience in the industry.
+
+Should have experience in:
+Worked in Chicago, IL as a Account Executive (AE) handling critical responsibilities.
+
+Skills must include:
+SQL, React, Node.js, JavaScript, Salesforce, Leadership",68,48.82,No,
+70,"Looking for a professional with the following background:
+Software Engineer with over 10 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Software Engineer handling critical responsibilities.
+
+Skills must include:
+Cloud Computing, Communication, Project Management, JavaScript, Leadership, SQL",70,45.39,No,
+71,"Looking for a professional with the following background:
+Vice President (VP) of Sales with over 2 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Vice President (VP) of Sales handling critical responsibilities.
+
+Skills must include:
+Project Management, SQL, Salesforce, HR Management, Python",58,64.63,No,
+72,"Looking for a professional with the following background:
+Software Architect with over 8 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Software Architect handling critical responsibilities.
+
+Skills must include:
+SQL, JavaScript, Communication, Salesforce, Leadership",72,50.74,No,
+73,"Looking for a professional with the following background:
+Account Executive (AE) with over 7 years of experience in the industry.
+
+Should have experience in:
+Worked in Los Angeles, CA as a Account Executive (AE) handling critical responsibilities.
+
+Skills must include:
+Node.js, Communication, Customer Support",73,50.31,No,
+74,"Looking for a professional with the following background:
+Software Engineer with over 8 years of experience in the industry.
+
+Should have experience in:
+Worked in New York, NY as a Software Engineer handling critical responsibilities.
+
+Skills must include:
+HR Management, Communication, Cloud Computing, SQL, JavaScript, Salesforce",45,44.0,No,
+76,"Looking for a professional with the following background:
+Professional from France experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across France.
+
+Skills must include:
+Python, Communication, Teamwork",76,52.61,No,
+77,"Looking for a professional with the following background:
+Professional from Spain experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Spain.
+
+Skills must include:
+Python, Communication, Teamwork",77,53.27,No,
+78,"Looking for a professional with the following background:
+Professional from Italy experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Italy.
+
+Skills must include:
+Python, Communication, Teamwork",78,51.62,No,
+79,"Looking for a professional with the following background:
+Professional from Netherlands experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Netherlands.
+
+Skills must include:
+Python, Communication, Teamwork",79,52.26,No,
+81,"Looking for a professional with the following background:
+Professional from Sweden experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Sweden.
+
+Skills must include:
+Python, Communication, Teamwork",81,52.2,No,
+82,"Looking for a professional with the following background:
+Professional from Denmark experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Denmark.
+
+Skills must include:
+Python, Communication, Teamwork",82,52.23,No,
+83,"Looking for a professional with the following background:
+Professional from Finland experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Finland.
+
+Skills must include:
+Python, Communication, Teamwork",83,55.35,No,
+84,"Looking for a professional with the following background:
+Professional from Portugal experienced in modern technologies.
+
+Should have experience in:
+Worked in various companies across Portugal.
+
+Skills must include:
+Python, Communication, Teamwork",84,55.52,No,
+85,"Looking for a professional with the following background:
+Talent 1 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 6 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Adobe Photoshop, Copywriting, Email Marketing, SEO, Instagram Ads",89,50.33,No,
+86,"Looking for a professional with the following background:
+Talent 2 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 3 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Email Marketing, Video Editing, SEO, Google Analytics, Adobe Photoshop",92,49.66,No,
+108,"Looking for a professional with the following background:
+Miss Stephanie Brown is a seasoned professional in general, currently focused on roles like financial analyst. Form interesting enter sport strong. Miss set which policy store relationship carry.
+
+Should have experience in:
+Both base knowledge type weight. New resource near eat. Certain set central follow eye your. Father pattern already service among head weight drop.
+
+Skills must include:
+Data Visualization, Cloud Computing, UX Design, Project Management, Python",108,72.03,No,
+88,"Looking for a professional with the following background:
+Talent 4 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 10 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Adobe Photoshop, Google Analytics, SEO, Facebook Ads, Video Editing",89,50.15,No,
+89,"Looking for a professional with the following background:
+Talent 5 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 10 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Google Analytics, Copywriting, Instagram Ads, Adobe Photoshop, SEO",89,53.0,No,
+90,"Looking for a professional with the following background:
+Talent 6 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 7 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+SEO, Copywriting, Google Analytics, Video Editing, Social Media Marketing",92,50.5,No,
+91,"Looking for a professional with the following background:
+Talent 7 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 9 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Instagram Ads, Google Analytics, Email Marketing, Content Strategy, YouTube Channel Management",89,48.52,No,
+92,"Looking for a professional with the following background:
+Talent 8 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 5 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Content Strategy, Social Media Marketing, Video Editing, Adobe Photoshop, Facebook Ads",92,55.57,No,
+93,"Looking for a professional with the following background:
+Talent 9 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 3 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Adobe Photoshop, Social Media Marketing, Content Strategy, Copywriting, Facebook Ads",92,54.26,No,
+94,"Looking for a professional with the following background:
+Talent 10 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 10 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Video Editing, Email Marketing, Instagram Ads, Facebook Ads, Content Strategy",94,50.4,No,
+95,"Looking for a professional with the following background:
+Intl Talent 11 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 12 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Adobe Photoshop, SEO, YouTube Channel Management, Content Strategy, Google Analytics",95,62.36,No,
+96,"Looking for a professional with the following background:
+Intl Talent 12 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 6 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Instagram Ads, Email Marketing, YouTube Channel Management, Content Strategy, Copywriting",95,56.21,No,
+97,"Looking for a professional with the following background:
+Intl Talent 13 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 12 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Video Editing, YouTube Channel Management, Content Strategy, Adobe Photoshop, SEO",97,61.2,No,
+98,"Looking for a professional with the following background:
+Intl Talent 14 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 9 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Video Editing, Email Marketing, Google Analytics, Social Media Marketing, SEO",99,55.82,No,
+99,"Looking for a professional with the following background:
+Intl Talent 15 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 7 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Email Marketing, Facebook Ads, Content Strategy, SEO, Video Editing",99,61.95,No,
+100,"Looking for a professional with the following background:
+Intl Talent 16 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 11 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Instagram Ads, Google Analytics, Facebook Ads, YouTube Channel Management, Social Media Marketing",95,55.68,No,
+101,"Looking for a professional with the following background:
+Intl Talent 17 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 4 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Instagram Ads, YouTube Channel Management, Content Strategy, Email Marketing, Social Media Marketing",101,57.13,No,
+87,"Looking for a professional with the following background:
+Talent 3 Marketer is a passionate digital marketing professional specializing in content creation, SEO, and social media engagement.
+
+Should have experience in:
+Over 7 years of experience in managing digital campaigns, content strategy, and influencer collaborations.
+
+Skills must include:
+Instagram Ads, Google Analytics, Video Editing, YouTube Channel Management, SEO",89,47.2,No,
+128,"Looking for a professional with the following background:
+
+
+Should have experience in:
+
+
+Skills must include:",None,0,No,No matches returned
+102,"Looking for a professional with the following background:
+Intl Talent 18 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 5 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Video Editing, Instagram Ads, SEO, Google Analytics, Social Media Marketing",99,54.04,No,
+103,"Looking for a professional with the following background:
+Intl Talent 19 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 11 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Email Marketing, Video Editing, Instagram Ads, Copywriting, YouTube Channel Management",95,54.89,No,
+104,"Looking for a professional with the following background:
+Intl Talent 20 Marketer is an experienced digital content creator and marketing strategist, working with clients across Europe and the Middle East.
+
+Should have experience in:
+More than 11 years in planning, executing, and analyzing content-driven marketing initiatives in international markets.
+
+Skills must include:
+Video Editing, Copywriting, YouTube Channel Management, Instagram Ads, SEO",95,54.76,No,
+105,"Looking for a professional with the following background:
+Joshua Perkins is a seasoned professional in marketing, currently focused on roles like content marketing manager. Thus baby seven city. Set trouble move check back majority.
+
+Should have experience in:
+Can deal vote especially. Sure defense grow general if science. Sure make throw carry lay strong. Decade easy customer east degree.
+
+Skills must include:
+SEO, Copywriting, Social Media Marketing, Email Marketing, Content Strategy",105,71.48,No,
+106,"Looking for a professional with the following background:
+Lee Martinez is a seasoned professional in general, currently focused on roles like digital content creator. Buy month paper state eye. Door after suggest.
+
+Should have experience in:
+Practice pick cover. Expect red light alone direction reason bar. Nothing of response total hair industry outside.
+
+Skills must include:
+Project Management, SEO, Graphic Design, Public Speaking, Paid Advertising",106,71.75,No,
+107,"Looking for a professional with the following background:
+Mary Maldonado is a seasoned professional in general, currently focused on roles like full stack developer. Reason safe medical exist level your. Think until thousand president your how.
+
+Should have experience in:
+Article hard weight. Similar should others bank however miss language. Push line address. Popular claim whose interest mention.
+
+Skills must include:
+SEO, UX Design, Data Analysis, Content Creation, Cloud Computing",107,63.47,No,
+109,"Looking for a professional with the following background:
+Caitlyn Moore is a seasoned professional in general, currently focused on roles like recruitment specialist. Learn quality scene admit I both alone.
+
+Should have experience in:
+Issue trade body have miss. Enter condition rather head white field case. Pretty recently get place law explain.
+
+Skills must include:
+Cloud Computing, Content Creation, Graphic Design, UX Design, Paid Advertising",109,73.37,No,
+110,"Looking for a professional with the following background:
+Brittney Campbell is a seasoned professional in design, currently focused on roles like ux/ui designer. Herself whom start difficult whose ability paper wish. Member according teacher practice.
+
+Should have experience in:
+Current value line yard. Receive store bring see wide employee. Development information eat what magazine hot he.
+
+Skills must include:
+Adobe XD, Branding, Illustrator, Photoshop, Figma",110,57.1,No,
+111,"Looking for a professional with the following background:
+Tamara Neal is a seasoned professional in general, currently focused on roles like machine learning engineer. Even wonder bank senior simply look. Large answer base.
+
+Should have experience in:
+Community land thought PM. Rule everybody attorney heavy success during network. Window feeling world tough stay your.
+
+Skills must include:
+SQL, Graphic Design, Project Management, Marketing Strategy, Data Visualization",111,66.18,No,
+112,"Looking for a professional with the following background:
+Cheyenne Montgomery is a seasoned professional in general, currently focused on roles like seo strategist. His political including just factor. Before sister off economy.
+
+Should have experience in:
+Compare account quickly well. Camera store area meet nation. Rich national magazine inside position. Nature rise participant green heavy father effect dog.
+
+Skills must include:
+Content Creation, Data Analysis, Graphic Design, UX Design, Paid Advertising",112,63.82,No,
+113,"Looking for a professional with the following background:
+Deborah Hughes is a seasoned professional in design, currently focused on roles like graphic designer. Force specific that author spring wear race consumer. Section hit throw help carry.
+
+Should have experience in:
+Could light later ago figure we close with. Unit crime improve ask themselves political professor.
+
+Skills must include:
+Figma, Branding, Photoshop, Adobe XD, Illustrator",113,66.92,No,
+114,"Looking for a professional with the following background:
+Jeffrey Weber is a seasoned professional in general, currently focused on roles like investment strategist. Movie bag project on general. Yes performance get about.
+
+Should have experience in:
+Stock up campaign listen coach require. Night standard majority man middle decade money minute. However pull radio sign record catch.
+
+Skills must include:
+Cloud Computing, Project Management, Public Speaking, Graphic Design, UX Design",114,68.18,No,
+129,"Looking for a professional with the following background:
+Seasoned C-suite executive with over 20 years of leadership experience in technology, finance, and operations. Known for strategic thinking, innovation leadership, and driving exponential growth.
+
+Should have experience in:
+Senior
+
+Skills must include:
+Strategic Leadership, Digital Transformation, PL Management, MA, Executive Coaching, Blockchain, AI Strategy",129,66.65,No,
+116,"Looking for a professional with the following background:
+Wendy Rogers is a professional in marketing, focused on roles such as content marketing manager. Stage measure probably feeling plant prevent. Quickly TV night large decision talk.
+
+Should have experience in:
+Clearly run charge capital. Difference put material commercial. Bag this interview task. Spend point anything it how put.
+
+Skills must include:
+Email Marketing, Copywriting, Content Strategy, Social Media Marketing, SEO",116,56.07,No,
+119,"Looking for a professional with the following background:
+Barry Reeves is a professional in finance, focused on roles such as financial analyst. Not carry the. News collection good real final expect week authority.
+
+Should have experience in:
+Doctor recently fear both ok. Than concern your edge role everybody. List once hospital our result partner program.
+
+Skills must include:
+Risk Assessment, Excel, Data Analysis, Financial Modeling, Investment Research",119,67.28,No,
+120,"Looking for a professional with the following background:
+Michael Walter is a professional in finance, focused on roles such as financial analyst. Pay night professional. Debate response whether show large past space.
+
+Should have experience in:
+Across scientist discussion rich health. Generation read nation condition. Contain attorney imagine brother. Cut those opportunity free. Foot end draw yeah find.
+
+Skills must include:
+Financial Modeling, Excel, Investment Research, Risk Assessment, Data Analysis",120,74.09,No,
+118,"Looking for a professional with the following background:
+Gina Hood is a professional in software, focused on roles such as full stack developer. Individual population fact particular.
+
+Should have experience in:
+Once position indeed no two project. Page main production my PM wonder. Charge might low between stuff personal. That once series life industry.
+
+Skills must include:
+JavaScript, Node.js, React, SQL, Python",118,68.37,No,
+121,"Looking for a professional with the following background:
+Alison Barker is a professional in hr, focused on roles such as recruitment specialist. Road civil perform matter rest their father.
+
+Should have experience in:
+Wrong even pay though fast long fact his. Charge face still public region risk. Little draw tend thus family leave them. Start office deep career figure not night cold. Trade fact far nation.
+
+Skills must include:
+HRIS Systems, Employee Relations, Talent Acquisition, Onboarding, Interviewing",121,78.29,No,
+122,"Looking for a professional with the following background:
+Daniel Davis is a professional in hr, focused on roles such as recruitment specialist. Easy age employee environmental same. Bar play another he source rich light.
+
+Should have experience in:
+Door small worker man recently allow suffer. Pass happen of allow material. Who for ball human fly turn.
+
+Skills must include:
+Onboarding, Employee Relations, Interviewing, Talent Acquisition, HRIS Systems",122,74.0,No,
+123,"Looking for a professional with the following background:
+Tina Hamilton is a professional in design, focused on roles such as graphic designer. Walk response agreement south value defense.
+
+Should have experience in:
+Artist so result ago. Course far stand public. Month yard hotel strong edge.
+
+Skills must include:
+Photoshop, Adobe XD, Branding, Illustrator, Figma",123,67.32,No,
+124,"Looking for a professional with the following background:
+Jeffrey Newman is a professional in design, focused on roles such as graphic designer. Save guy southern doctor discussion nature arrive feel. Trade plan itself a fire make.
+
+Should have experience in:
+Hundred possible reach science change. Decision newspaper another determine. He enter same may.
+
+Skills must include:
+Illustrator, Photoshop, Adobe XD, Branding, Figma",124,68.81,No,
+125,"Looking for a professional with the following background:
+Teresa Mitchell is a professional in data, focused on roles such as data analyst. Rate pick work produce nature local. Under a there.
+
+Should have experience in:
+Open would public author pay who democratic. Three quickly ability cost reality. Play since offer very west company listen site. Friend deal because consumer nor party rich this.
+
+Skills must include:
+R, Python, SQL, Pandas, Data Wrangling",125,74.45,No,
+126,"Looking for a professional with the following background:
+Douglas Glover is a professional in data, focused on roles such as data analyst. Practice discuss by agency manager. No government open instead method last amount.
+
+Should have experience in:
+Never page dinner including eight executive. Recently road language least ago performance country. Carry election might moment either. Hot pass say cup.
+
+Skills must include:
+Pandas, R, SQL, Machine Learning, Data Wrangling",126,70.74,No,
+130,"Looking for a professional with the following background:
+
+
+Should have experience in:
+
+
+Skills must include:",None,0,No,No matches returned
+131,"Looking for a professional with the following background:
+
+
+Should have experience in:
+
+
+Skills must include:",None,0,No,No matches returned
+132,"Looking for a professional with the following background:
+
+
+Should have experience in:
+
+
+Skills must include:",None,0,No,No matches returned
+46,"Looking for a professional with the following background:
+Software Engineer with over 5 years of experience in the industry.
+
+Should have experience in:
+Senior
+
+Skills must include:
+Communication, Project Management, SQL, JavaScript",46,19.15,No,
