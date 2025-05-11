@@ -16,6 +16,8 @@ from docx import Document
 from datetime import datetime, timedelta
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from sentence_transformers import SentenceTransformer
+#from matchmaker import explain_job_match_with_mistral_dict
 
 app = Flask(__name__)
 CORS(app)
@@ -193,118 +195,95 @@ Based on this information, explain in 2-3 sentences why this candidate is a good
     explanation = response.json()["choices"][0]["message"]["content"]
     return jsonify({ "explanation": explanation })
     
-# This endpoint is used for semantic style search 
-'''@app.route('/search-talents', methods=['POST'])
-def search_talents():
+# This endpoint is used for semantic style search using minstral
+@app.route('/search-talents-mistral', methods=['POST'])
+def search_talents_mistral():
+    import json
+    from sklearn.metrics.pairwise import cosine_similarity
+
     query = request.json.get("query", "")
     if not query:
         return jsonify({"error": "Query is required"}), 400
 
-    print("🔍 Scout Search Query:", query)
+    print("🧠 Mistral Search Query:", query)
 
-    conn = psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
-    cursor = conn.cursor()
+    try:
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        query_embedding = model.encode([query])[0]
 
-    # ✅ Include tp.user_id in the SELECT
-    cursor.execute("""
-        SELECT tp.talent_id, tp.user_id, up.full_name, up.email, tp.resume, tp.bio, tp.experience,
-               tp.skills, tp.location, tp.availability
-        FROM public.talent_profiles tp
-        JOIN public.user_profiles up ON tp.user_id = up.user_id;
-    """)
-    talents = cursor.fetchall()
-    cursor.close()
-    conn.close()
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cur = conn.cursor()
 
-    if not talents:
-        return jsonify({"matches": []})
+        cur.execute("""
+            SELECT t.talent_id, t.user_id, u.full_name, u.email, t.resume, t.bio, t.experience,
+                   t.skills, t.location, t.availability, e.embedding
+            FROM talent_profiles t
+            JOIN user_profiles u ON t.user_id = u.user_id
+            JOIN talent_profile_embeddings e ON t.talent_id = e.talent_id;
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
 
-    # Build document corpus: query + all talent docs
-    docs = [query]
-    for talent in talents:
-        resume, bio, exp = talent[4], talent[5], talent[6]
-        combined_text = f"{resume or ''} {bio or ''} {exp or ''}"
-        docs.append(combined_text)
+        matches = []
+        threshold = 0.5  # semantic similarity threshold
 
-    # Compute similarity
-    tfidf = TfidfVectorizer(stop_words='english')
-    vectors = tfidf.fit_transform(docs)
-    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+        for row in rows:
+            tid, uid, name, email, resume, bio, exp, skills, location, availability, embedding = row
+            sim = cosine_similarity([query_embedding], [embedding])[0][0]
 
-    threshold = 0.1
-    matches = []
+            if sim >= threshold:
+                job_stub = {
+                    "title": "Custom Search",
+                    "description": query,
+                    "skills": []
+                }
+                talent_stub = {
+                    "name": name,
+                    "resume": resume,
+                    "bio": bio,
+                    "experience": exp,
+                    "skills": skills or []
+                }
 
-    for i, score in enumerate(scores):
-        if score >= threshold:
-            # ✅ Unpack user_id in the right order
-            tid, uid, name, email, resume, bio, exp, skills, location, availability = talents[i]
+                try:
+                    explanation = explain_job_match_with_mistral_dict(job_stub, talent_stub)
+                except Exception as e:
+                    print(f"⚠️ Mistral explanation failed for talent_id {tid}:", e)
+                    explanation = "Explanation not available."
 
-            # Strip PII for OpenAI
-            stripped_info = {
-                "resume": resume,
-                "bio": bio,
-                "experience": exp,
-                "skills": skills,
-                "availability": availability
-            }
+                matches.append({
+                    "match_score": round(sim * 100, 2),
+                    "talent_id": tid,
+                    "user_id": uid,
+                    "name": name,
+                    "email": email,
+                    "location": location,
+                    "availability": availability,
+                    "skills": skills,
+                    "explanation": explanation
+                })
 
-            prompt = f"""
-You are an AI talent scout. A recruiter is looking for this: "{query}"
+        matches.sort(key=lambda x: -x["match_score"])
 
-Here is a candidate's anonymized profile:
-Resume: {stripped_info['resume']}
-Bio: {stripped_info['bio']}
-Experience: {stripped_info['experience']}
-Skills: {', '.join(stripped_info['skills'])}
-Availability: {stripped_info['availability']}
-
-Explain in 3–4 sentences why this candidate might be a good match.
-"""
-
-            explanation = ""
-            try:
-                openai_response = requests.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "gpt-3.5-turbo",
-                        "messages": [
-                            {"role": "system", "content": "You are a helpful recruiter assistant."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "temperature": 0.7
-                    }
-                )
-                openai_response.raise_for_status()
-                explanation = openai_response.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                print("OpenAI explanation failed:", e)
-                explanation = "Explanation not available."
-
-            matches.append({
-                "match_score": round(score * 100, 2),
-                "talent_id": tid,
-                "user_id": uid,  # ✅ Now included in the result
-                "name": name,
-                "email": email,
-                "location": location,
-                "availability": availability,
-                "skills": skills,
-                "explanation": explanation
+        if not matches:
+            suggestion = json.dumps({
+                "advice": "Try broadening your search keywords for better results.",
+                "refined_prompt": ""
             })
+            return jsonify({"matches": [], "suggestion": suggestion})
 
-    matches.sort(key=lambda x: -x['match_score'])
-    return jsonify({"matches": matches})
-'''
+        return jsonify({"matches": matches})
+
+    except Exception as e:
+        print("🔥 Error in /search-talents-mistral:", e)
+        return jsonify({"error": "Internal server error"}), 500
 
 # This endpoint is used to return a match of talents based on scout talent job post details
 @app.route('/jobs', methods=['POST'])
@@ -665,8 +644,10 @@ def ai_match_talents():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT tp.talent_id, tp.user_id, tp.resume, tp.bio, tp.experience, tp.skills, tp.industry_experience,
-                   tp.years_experience, tp.desired_salary, tp.location, tp.work_preferences,
+            SELECT tp.talent_id, tp.user_id, tp.resume, tp.bio, tp.experience, tp.skills, 
+                    tp.industry_experience,
+                   tp.years_experience, tp.desired_salary, tp.location, tp.country, 
+                   tp.country_code, tp.work_preferences,
                    tp.availability, up.full_name, up.email
             FROM public.talent_profiles tp
             JOIN public.user_profiles up ON tp.user_id = up.user_id;
@@ -683,8 +664,9 @@ def ai_match_talents():
     job_doc = [job_vector]
     talent_docs = [
         f"{resume or ''} {bio or ''} {exp or ''} {' '.join(skills or [])} {' '.join(industry or [])} {years or 0}"
-        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _) in talents
+        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _, _, _) in talents
     ]
+
 
     tfidf = TfidfVectorizer(stop_words='english')
     vectors = tfidf.fit_transform(job_doc + talent_docs)
@@ -697,7 +679,7 @@ def ai_match_talents():
 
     # 👇 Parallel explanation builder
     def build_result(i, score):
-        tid, uid, resume, bio, exp, skills, industry, years, salary, location, work_preferences, availability, name, email = talents[i]
+        tid, uid, resume, bio, exp, skills, industry, years, salary, location, country, country_code, work_preferences, availability, name, email = talents[i]
         try:
             explanation = "" '''generate_match_explanation(
                 {
@@ -730,6 +712,8 @@ def ai_match_talents():
             "years_experience": years,
             "desired_salary": salary,
             "location": location,
+            "country": country,
+            "country_code": country_code,
             "work_preferences": work_preferences,
             "availability": availability,
             "match_score": round(score * 100, 2),
