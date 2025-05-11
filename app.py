@@ -16,7 +16,7 @@ from docx import Document
 from datetime import datetime, timedelta
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 #from matchmaker import explain_job_match_with_mistral_dict
 
 app = Flask(__name__)
@@ -196,7 +196,7 @@ Based on this information, explain in 2-3 sentences why this candidate is a good
     return jsonify({ "explanation": explanation })
     
 # This endpoint is used for semantic style search using minstral
-@app.route('/search-talents-mistral', methods=['POST'])
+'''@app.route('/search-talents-mistral', methods=['POST'])
 def search_talents_mistral():
     import json
     from sklearn.metrics.pairwise import cosine_similarity
@@ -284,6 +284,7 @@ def search_talents_mistral():
     except Exception as e:
         print("🔥 Error in /search-talents-mistral:", e)
         return jsonify({"error": "Internal server error"}), 500
+'''
 
 # This endpoint is used to return a match of talents based on scout talent job post details
 @app.route('/jobs', methods=['POST'])
