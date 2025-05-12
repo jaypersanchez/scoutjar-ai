@@ -1088,6 +1088,65 @@ Respond ONLY in this exact JSON format:
         print("🔥 Error parsing OpenAI response:", e)
         return jsonify({"error": "Failed to parse AI response"}), 500
 
+# This is an endpoint to set the Talent's dream job settings
+@app.route("/save-passive-preferences", methods=["POST"])
+def save_passive_preferences():
+    data = request.json
+    required_fields = ["talent_id"]
+
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    talent_id = data["talent_id"]
+    salary_min = data.get("salary_min")
+    salary_max = data.get("salary_max")
+    dream_companies = data.get("dream_companies", [])
+    match_threshold = data.get("match_threshold", 80)
+    remote_preference = data.get("remote_preference", True)
+    preferred_industries = data.get("preferred_industries", [])
+    preferred_roles = data.get("preferred_roles", [])
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO passive_preferences (
+                talent_id, salary_min, salary_max, dream_companies, match_threshold,
+                remote_preference, preferred_industries, preferred_roles, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+            ON CONFLICT (talent_id) DO UPDATE SET
+                salary_min = EXCLUDED.salary_min,
+                salary_max = EXCLUDED.salary_max,
+                dream_companies = EXCLUDED.dream_companies,
+                match_threshold = EXCLUDED.match_threshold,
+                remote_preference = EXCLUDED.remote_preference,
+                preferred_industries = EXCLUDED.preferred_industries,
+                preferred_roles = EXCLUDED.preferred_roles,
+                updated_at = now();
+        """, (
+            talent_id, salary_min, salary_max, dream_companies, match_threshold,
+            remote_preference, preferred_industries, preferred_roles
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Passive preferences saved successfully."})
+
+    except Exception as e:
+        print("🔥 Error saving passive preferences:", e)
+        return jsonify({"error": "Database operation failed."}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
