@@ -1147,6 +1147,54 @@ def save_passive_preferences():
         print("🔥 Error saving passive preferences:", e)
         return jsonify({"error": "Database operation failed."}), 500
 
+# This endpoint is to get the passive preferences settings 
+@app.route("/get-passive-preferences", methods=["POST"])
+def get_passive_preferences():
+    data = request.json
+    talent_id = data.get("talent_id")
+
+    if not talent_id:
+        return jsonify({"error": "Missing talent_id"}), 400
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT salary_min, salary_max, dream_companies, match_threshold,
+                   remote_preference, preferred_industries, preferred_roles
+            FROM passive_preferences
+            WHERE talent_id = %s;
+        """, (talent_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"message": "No passive preferences found", "data": None}), 200
+
+        return jsonify({
+            "data": {
+                "salary_min": row[0],
+                "salary_max": row[1],
+                "dream_companies": row[2],
+                "match_threshold": row[3],
+                "remote_preference": row[4],
+                "preferred_industries": row[5],
+                "preferred_roles": row[6]
+            }
+        })
+
+    except Exception as e:
+        print("🔥 Error fetching passive preferences:", e)
+        return jsonify({"error": "Failed to fetch preferences"}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
