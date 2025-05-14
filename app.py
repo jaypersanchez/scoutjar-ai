@@ -1195,6 +1195,55 @@ def get_passive_preferences():
         print("🔥 Error fetching passive preferences:", e)
         return jsonify({"error": "Failed to fetch preferences"}), 500
 
+# This endpoint is used to provide the passive job match for talents who are in passive mode
+@app.route("/passive-matches/<int:talent_id>", methods=["GET"])
+def get_passive_matches(talent_id):
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT pm.job_id, pm.recruiter_id, pm.match_score, j.job_title, j.job_description,
+                   j.required_skills, j.salary_range, j.location, j.work_mode, j.experience_level,
+                   j.employment_type
+            FROM passive_matches pm
+            JOIN jobs j ON pm.job_id = j.job_id
+            WHERE pm.talent_id = %s
+            ORDER BY pm.match_score DESC;
+        """, (talent_id,))
+
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        matches = []
+        for row in rows:
+            matches.append({
+                "job_id": row[0],
+                "recruiter_id": row[1],
+                "match_score": row[2],
+                "job_title": row[3],
+                "job_description": row[4],
+                "required_skills": row[5],
+                "salary_range": row[6],
+                "location": row[7],
+                "work_mode": row[8],
+                "experience_level": row[9],
+                "employment_type": row[10]
+            })
+
+        return jsonify({"matches": matches})
+
+    except Exception as e:
+        print("🔥 Error fetching passive matches:", e)
+        return jsonify({"error": "Failed to fetch passive matches"}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
