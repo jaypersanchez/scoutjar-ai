@@ -649,7 +649,7 @@ def ai_match_talents():
                     tp.industry_experience,
                    tp.years_experience, tp.desired_salary, tp.location, tp.country, 
                    tp.country_code, tp.work_preferences,
-                   tp.availability, up.full_name, up.email
+                   tp.availability, up.full_name, up.email, tp.profile_mode
             FROM public.talent_profiles tp
             JOIN public.user_profiles up ON tp.user_id = up.user_id;
         """)
@@ -665,7 +665,7 @@ def ai_match_talents():
     job_doc = [job_vector]
     talent_docs = [
         f"{resume or ''} {bio or ''} {exp or ''} {' '.join(skills or [])} {' '.join(industry or [])} {years or 0}"
-        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _, _, _) in talents
+        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _, _, _, _) in talents
     ]
 
 
@@ -680,7 +680,9 @@ def ai_match_talents():
 
     # 👇 Parallel explanation builder
     def build_result(i, score):
-        tid, uid, resume, bio, exp, skills, industry, years, salary, location, country, country_code, work_preferences, availability, name, email = talents[i]
+        tid, uid, resume, bio, exp, skills, industry, years, salary, location, country, country_code, work_preferences, availability, name, email, profile_mode = talents[i]
+        print(f"🧪 Talent {tid}: profile_mode = {profile_mode}")
+
         try:
             explanation = "" '''generate_match_explanation(
                 {
@@ -699,7 +701,7 @@ def ai_match_talents():
         except Exception as e:
             print(f"❌ Failed to get explanation for talent_id {tid}:", e)
             explanation = "Explanation not available."
-
+        
         return {
             "talent_id": tid,
             "user_id": uid,
@@ -718,7 +720,8 @@ def ai_match_talents():
             "work_preferences": work_preferences,
             "availability": availability,
             "match_score": round(score * 100, 2),
-            "explanation": explanation
+            "explanation": explanation,
+            "profile_mode": profile_mode
         }
 
     results = []
