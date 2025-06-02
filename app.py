@@ -21,14 +21,33 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 CORS(app)
-
+load_dotenv()
 # Config: Set these as environment variables or change directly
 DB_NAME = os.getenv("DB_NAME", "scoutjar")
 DB_USER = os.getenv("DB_USER", "youruser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "yourpassword")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+def get_embedding(text, model="text-embedding-ada-002"):
+    try:
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "input": text
+        }
+        response = requests.post("https://api.openai.com/v1/embeddings", headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()["data"][0]["embedding"]
+    except Exception as e:
+        print(f"🔥 Error getting embedding: {e}")
+        return None
+
+    
 # This endpoint is to match a job posted in jobs table to the talent user
 @app.route('/match-jobs', methods=['POST'])
 def match_jobs_for_talent():
@@ -110,6 +129,67 @@ def match_jobs_for_talent():
         return jsonify({"error": "Failed to match jobs"}), 500
 
 
+@app.route("/search-jobs-semantic", methods=["POST"])
+def search_jobs_semantic():
+    data = request.get_json()
+    talent_id = data.get("talent_id")
+    if not talent_id:
+        return jsonify({"error": "Missing talent_id"}), 400
+
+    conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT resume, bio, experience, skills
+        FROM talent_profiles
+        WHERE talent_id = %s
+    """, (talent_id,))
+    talent = cursor.fetchone()
+    if not talent:
+        return jsonify({"error": "Talent not found"}), 404
+
+    resume, bio, experience, skills = talent
+    query = f"{resume or ''} {bio or ''} {experience or ''} {' '.join(skills or [])}"
+
+    # Embed the talent query
+    try:
+        query_vector = get_embedding(query)
+    except Exception as e:
+        return jsonify({"error": "Embedding failed", "details": str(e)}), 500
+
+    # Get jobs and embed each one
+    cursor.execute("SELECT job_id, job_title, job_description, required_skills FROM jobs")
+    jobs = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    job_matches = []
+    for job_id, job_title, job_description, required_skills in jobs:
+        job_text = f"{job_title or ''} {job_description or ''} {' '.join(required_skills or [])}"
+        try:
+            job_vector = get_embedding(job_text)
+        except Exception as e:
+            continue
+
+        # Cosine similarity (dot product since they are normalized)
+        similarity = sum(q * j for q, j in zip(query_vector, job_vector))
+        job_matches.append({
+            "job_id": job_id,
+            "job_title": job_title,
+            "job_description": job_description,
+            "required_skills": required_skills,
+            "match_score": similarity * 100
+        })
+
+    # Sort by score descending
+    job_matches.sort(key=lambda x: x["match_score"], reverse=True)
+    return jsonify({"matches": job_matches})
 
 
 # Return a list of jobs the talent has applied for
