@@ -1328,8 +1328,15 @@ def get_passive_matches(talent_id):
         return jsonify({"error": "Failed to fetch passive matches"}), 500
 
 
-if __name__ == '__main__':
+'''if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     app.run(host=host, port=port)
-    
+   '''
+   
+if __name__ == '__main__':
+    port = int(os.getenv("FLASK_PORT", 5001))
+    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    context = ('server.cert', 'server.key')  # (cert, key) order
+    app.run(host=host, port=port, ssl_context=context)
+
