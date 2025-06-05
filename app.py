@@ -40,7 +40,7 @@ def get_embedding(text, model="text-embedding-ada-002"):
             "model": model,
             "input": text
         }
-        response = requests.post("https://api.openai.com/v1/embeddings", headers=headers, json=payload)
+        response = requests.post("https://ai.openai.com/v1/embeddings", headers=headers, json=payload)
         response.raise_for_status()
         return response.json()["data"][0]["embedding"]
     except Exception as e:
@@ -49,7 +49,7 @@ def get_embedding(text, model="text-embedding-ada-002"):
 
     
 # This endpoint is to match a job posted in jobs table to the talent user
-@app.route('/api/match-jobs', methods=['POST'])
+@app.route('/ai/match-jobs', methods=['POST'])
 def match_jobs_for_talent():
     data = request.json
     talent_id = data.get("talent_id")
@@ -129,7 +129,7 @@ def match_jobs_for_talent():
         return jsonify({"error": "Failed to match jobs"}), 500
 
 
-@app.route("/api/search-jobs-semantic", methods=["POST"])
+@app.route("/ai/search-jobs-semantic", methods=["POST"])
 def search_jobs_semantic():
     data = request.get_json()
     talent_id = data.get("talent_id")
@@ -193,7 +193,7 @@ def search_jobs_semantic():
 
 
 # Return a list of jobs the talent has applied for
-@app.route('/api/applied-jobs', methods=['POST'])
+@app.route('/ai/applied-jobs', methods=['POST'])
 def get_applied_jobs():
     data = request.json
     talent_id = data.get("talent_id")
@@ -234,7 +234,7 @@ def get_applied_jobs():
     return jsonify({"applied_jobs": applied_jobs})
 
 # This endpoint is used to explain to the scout talent how a talent matches with their job post
-@app.route("/api/explain-match", methods=["POST"])
+@app.route("/ai/explain-match", methods=["POST"])
 def explain_match():
     data = request.json
     job = data.get("job", {})
@@ -367,7 +367,7 @@ def search_talents_mistral():
 '''
 
 # This endpoint is used to return a match of talents based on scout talent job post details
-@app.route('/api/jobs', methods=['POST'])
+@app.route('/ai/jobs', methods=['POST'])
 def match_talents():
     job = request.json
     job_text = f"{job.get('title', '')} {job.get('description', '')} {job.get('skills', '')}"
@@ -427,7 +427,7 @@ def match_talents():
     return jsonify({"matches": matches})
     
 # search talent with suggestion 
-@app.route('/api/search-talents', methods=['POST'])
+@app.route('/ai/search-talents', methods=['POST'])
 def search_talents():
     import json  # Make sure you have this at the top
 
@@ -558,7 +558,7 @@ Be concise and friendly.
     # 🔥 Normal return if there are matches
     return jsonify({"matches": matches})
 
-@app.route('/api/recruiter-info/<int:job_id>', methods=['GET'])
+@app.route('/ai/recruiter-info/<int:job_id>', methods=['GET'])
 def get_recruiter_info(job_id):
     try:
         conn = psycopg2.connect(
@@ -596,7 +596,7 @@ def get_recruiter_info(job_id):
         print("🔥 Error in /recruiter-info:", e)
         return jsonify({"error": "Failed to retrieve recruiter info"}), 500
 
-@app.route('/api/suggest-fields', methods=['POST'])
+@app.route('/ai/suggest-fields', methods=['POST'])
 def suggest_fields():
     data = request.json
     job_title = data.get("job_title", "")
@@ -649,7 +649,7 @@ Job Description: {job_description}
         return jsonify({"error": f"Failed to parse AI response: {str(e)}"}), 500
 
 
-@app.route('/api/suggest-skills', methods=['POST'])
+@app.route('/ai/suggest-skills', methods=['POST'])
 def suggest_skills():
     data = request.json
     job_title = data.get("job_title", "")
@@ -701,7 +701,7 @@ Job Description: {job_description}
     normalized = ", ".join(skills)
     return jsonify({"suggested_skills": normalized})
 
-@app.route('/api/ai-match-talents', methods=['POST'])
+@app.route('/ai/ai-match-talents', methods=['POST'])
 def ai_match_talents():
     data = request.json
 
@@ -843,7 +843,7 @@ def ai_match_talents():
 
 
 
-@app.route("/api/job-titles/all", methods=["GET"])
+@app.route("/ai/job-titles/all", methods=["GET"])
 def get_all_job_titles():
     try:
         conn = psycopg2.connect(
@@ -866,7 +866,7 @@ def get_all_job_titles():
         return jsonify([]), 500
 
 # This is for short list of talents that recruiter have approach but not necessarily tied to a job
-@app.route("/api/ai-shortlist", methods=["POST"])
+@app.route("/ai/ai-shortlist", methods=["POST"])
 def ai_shortlist():
     data = request.json
     recruiter_id = data.get("recruiter_id")
@@ -898,7 +898,7 @@ def ai_shortlist():
         print("🔥 AI Shortlist error:", e)
         return jsonify({"error": "Shortlist failed"}), 500
 
-@app.route("/api/ai-shortlisted-candidates", methods=["POST"])
+@app.route("/ai/ai-shortlisted-candidates", methods=["POST"])
 def get_ai_shortlisted_candidates():
     data = request.json
     recruiter_id = data.get("recruiter_id")
@@ -967,7 +967,7 @@ def extract_text_from_file(file_path, extension):
         print(f"🔥 Failed to extract text: {e}")
         return None
 
-@app.route("/api/upload-resume", methods=["POST"])
+@app.route("/ai/upload-resume", methods=["POST"])
 def upload_resume():
     talent_id = request.form.get("talent_id")
     file = request.files.get("file")
@@ -1010,7 +1010,7 @@ def upload_resume():
         print("🔥 DB Error:", e)
         return jsonify({"error": "Database update failed"}), 500
 
-@app.route("/generate-fictional-resumes", methods=["POST"])
+@app.route("/ai/generate-fictional-resumes", methods=["POST"])
 def generate_fictional_resumes():
     try:
         talent_id = request.json.get("talent_id") if request.is_json else None
@@ -1110,7 +1110,7 @@ Availability:
         print("🔥 Error generating enhanced resumes:", e)
         return jsonify({"error": "Internal server error."}), 500
 
-@app.route('/api/prefill-job-from-title', methods=['POST'])
+@app.route('/ai/prefill-job-from-title', methods=['POST'])
 def prefill_job_from_title():
     data = request.get_json()
     job_title = data.get("job_title", "").strip()
@@ -1172,7 +1172,7 @@ Respond ONLY in this exact JSON format:
         return jsonify({"error": "Failed to parse AI response"}), 500
 
 # This is an endpoint to set the Talent's dream job settings
-@app.route("/save-passive-preferences", methods=["POST"])
+@app.route("/ai/save-passive-preferences", methods=["POST"])
 def save_passive_preferences():
     data = request.json
     required_fields = ["talent_id"]
@@ -1231,7 +1231,7 @@ def save_passive_preferences():
         return jsonify({"error": "Database operation failed."}), 500
 
 # This endpoint is to get the passive preferences settings 
-@app.route("/api/get-passive-preferences", methods=["POST"])
+@app.route("/ai/get-passive-preferences", methods=["POST"])
 def get_passive_preferences():
     data = request.json
     talent_id = data.get("talent_id")
@@ -1279,7 +1279,7 @@ def get_passive_preferences():
         return jsonify({"error": "Failed to fetch preferences"}), 500
 
 # This endpoint is used to provide the passive job match for talents who are in passive mode
-@app.route("/api/passive-matches/<int:talent_id>", methods=["GET"])
+@app.route("/ai/passive-matches/<int:talent_id>", methods=["GET"])
 def get_passive_matches(talent_id):
     try:
         conn = psycopg2.connect(
