@@ -28,7 +28,8 @@ kill -9 $(lsof -t -i :5001) || true
 
 # Start the Flask app with pm2
 # pm2 start "python3 app.py" --name "scoutjar-ai-mvp0.1" --no-autorestart --time
-pm2 start "gunicorn -b 0.0.0.0:5001 app:app --timeout 180 --workers 2" --name "scoutjar-ai-mvp0.1" --time
+#pm2 start "gunicorn -b 0.0.0.0:5001 app:app --timeout 180 --workers 2" --name "scoutjar-ai-mvp0.1" --time
+gunicorn --certfile=server.cert --keyfile=server.key -b 0.0.0.0:5001 app:app
 
 # Save the pm2 process list
 pm2 save
