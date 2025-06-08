@@ -49,7 +49,7 @@ def get_embedding(text, model="text-embedding-ada-002"):
 
     
 # This endpoint is to match a job posted in jobs table to the talent user
-@app.route('/match-jobs', methods=['POST'])
+@app.route('/ai/match-jobs', methods=['POST'])
 def match_jobs_for_talent():
     data = request.json
     talent_id = data.get("talent_id")
@@ -129,7 +129,7 @@ def match_jobs_for_talent():
         return jsonify({"error": "Failed to match jobs"}), 500
 
 
-@app.route("/search-jobs-semantic", methods=["POST"])
+@app.route("/ai/search-jobs-semantic", methods=["POST"])
 def search_jobs_semantic():
     data = request.get_json()
     talent_id = data.get("talent_id")
@@ -193,7 +193,7 @@ def search_jobs_semantic():
 
 
 # Return a list of jobs the talent has applied for
-@app.route('/applied-jobs', methods=['POST'])
+@app.route('/ai/applied-jobs', methods=['POST'])
 def get_applied_jobs():
     data = request.json
     talent_id = data.get("talent_id")
