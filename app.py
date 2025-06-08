@@ -40,7 +40,7 @@ def get_embedding(text, model="text-embedding-ada-002"):
             "model": model,
             "input": text
         }
-        response = requests.post("https://ai.openai.com/v1/embeddings", headers=headers, json=payload)
+        response = requests.post("https://api.openai.com/v1/embeddings", headers=headers, json=payload)
         response.raise_for_status()
         return response.json()["data"][0]["embedding"]
     except Exception as e:
