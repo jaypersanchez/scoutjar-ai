@@ -2,7 +2,10 @@ from flask import Flask, request, jsonify
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import psycopg2
+from psycopg2.extras import Json
 import os
+import json
+from decimal import Decimal
 from flask_cors import CORS
 import requests
 from dotenv import load_dotenv
@@ -18,6 +21,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 #from sentence_transformers import SentenceTransformer
 #from matchmaker import explain_job_match_with_mistral_dict
+from utils.resume_parser import extract_text_from_file, parse_resume_to_fields
 
 app = Flask(__name__)
 CORS(app)
@@ -1002,14 +1006,48 @@ def upload_resume():
             WHERE talent_id = %s
         """, (extracted_text.strip(), talent_id))
         conn.commit()
+        #cursor.close()
+        #conn.close()
+
+        # now parse resume for specific fields to update talent profile
+        # Step 2: Parse resume content to fields
+        parsed = parse_resume_to_fields(extracted_text)
+        bio = parsed.get("bio", "")
+        experience = parsed.get("experience", "")
+        skills = parsed.get("skills", [])
+
+        # Safely convert experience (dict or list) to string
+        if isinstance(experience, (dict, list)):
+            experience = json.dumps(experience)
+
+        # Convert skills to list if it's a string
+        if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(",") if s.strip()]
+
+        print("🔍 Parsed bio:", bio)
+        print("🔍 Parsed experience:", experience)
+        print("🔍 Parsed skills:", skills)
+        
+        # Step 3: Update bio and experience only
+        cursor.execute("""
+            UPDATE talent_profiles
+            SET bio = %s, experience = %s, skills = %s
+            WHERE talent_id = %s
+        """, (
+            bio.strip(),
+            experience.strip(),
+            skills,  # This should be a list like ['Python', 'Java']
+            int(talent_id)
+            ))
+        conn.commit()
         cursor.close()
         conn.close()
-
-        return jsonify({"message": "Resume uploaded and saved successfully"})
+        return jsonify({"message": "Resume uploaded and profile updated with extracted fields."})
     except Exception as e:
         print("🔥 DB Error:", e)
         return jsonify({"error": "Database update failed"}), 500
 
+    
 @app.route("/ai/generate-fictional-resumes", methods=["POST"])
 def generate_fictional_resumes():
     try:
@@ -1328,15 +1366,15 @@ def get_passive_matches(talent_id):
         return jsonify({"error": "Failed to fetch passive matches"}), 500
 
 
-'''if __name__ == '__main__':
+if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     app.run(host=host, port=port)
-   '''
    
-if __name__ == '__main__':
+   
+'''if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     context = ('server.cert', 'server.key')  # (cert, key) order
     app.run(host=host, port=port, ssl_context=context)
-
+'''
