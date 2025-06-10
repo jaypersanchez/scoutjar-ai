@@ -1,14 +1,19 @@
 import os
 import json
 import requests
+import sys
 from dotenv import load_dotenv
 
 from PyPDF2 import PdfReader
 from docx import Document
+from datetime import datetime
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+def log_debug(message):
+    with open("/tmp/parser.log", "a") as f:
+        f.write(f"[{datetime.now()}] {message}\n")
 
 def extract_text_from_file(file_path):
     ext = os.path.splitext(file_path)[1].lower()
@@ -42,7 +47,8 @@ Return a JSON object with the following fields:
   "bio": "Professional summary or career objective if present.",
   "skills": "Comma-separated list of technical and soft skills.",
   "experience": "Summarized work history with job titles, companies, and what the candidate did.",
-  "education": "All academic history (degrees, certifications, schools) in a concise list or paragraph.",
+  "education": "Extract all educational background information, including degrees, school names, certifications, online courses, and any section titled Education or mentioning Advanced Education, even if informal. Look at the bottom of the resume for any education-related content, including nontraditional education like online courses or informal studies.
+",
   "location": "City and/or country if mentioned.",
   "location": "City and/or country if mentioned.",
   "desired_salary": "Numeric or salary range if present.",
@@ -79,9 +85,17 @@ Resume:
 
     try:
         content = response.json()["choices"][0]["message"]["content"]
-        return json.loads(content)
+        #print("✅ Raw OpenAI response (first 300 chars):", content[:300], file=sys.stderr)
+        log_debug("✅ Full OpenAI response:\n" + content)
+        #return json.loads(content)
+        parsed = json.loads(content)
+        log_debug("🎯 Parsed resume fields: " + json.dumps(parsed)[:500])
+        return parsed
     except Exception as e:
-        print("❌ Resume parsing failed:", e)
+        log_debug(f"❌ Resume parsing failed: {str(e)}")
+        log_debug(f"❌ Raw response: {response.text}")
+        print("❌ Resume parsing failed:", e, file=sys.stderr)
+        print("❌ Full response text:", response.text, file=sys.stderr)
         return {}
 
 
@@ -93,7 +107,8 @@ if __name__ == "__main__":
 
     file_path = sys.argv[1]
     resume_text = extract_text_from_file(file_path)
-
+    print("✅ Extracted resume text length:", len(resume_text), file=sys.stderr)
+    
     if not resume_text:
         print("❌ Could not extract text.")
         exit(1)

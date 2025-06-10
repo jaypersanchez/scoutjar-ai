@@ -4,6 +4,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import psycopg2
 from psycopg2.extras import Json
 import os
+import sys
 import json
 from decimal import Decimal
 from flask_cors import CORS
