@@ -1015,6 +1015,7 @@ def upload_resume():
         bio = parsed.get("bio", "")
         experience = parsed.get("experience", "")
         skills = parsed.get("skills", [])
+        education = parsed.get("education")
 
         # Safely convert experience (dict or list) to string
         if isinstance(experience, (dict, list)):
@@ -1024,19 +1025,22 @@ def upload_resume():
         if isinstance(skills, str):
             skills = [s.strip() for s in skills.split(",") if s.strip()]
 
+        print("🔍 Parsed talent_id:", talent_id)
         print("🔍 Parsed bio:", bio)
         print("🔍 Parsed experience:", experience)
         print("🔍 Parsed skills:", skills)
+        print("🔍 Parsed education:", education)
         
-        # Step 3: Update bio and experience only
+        # Step 3: Update bio, experience and education
         cursor.execute("""
             UPDATE talent_profiles
-            SET bio = %s, experience = %s, skills = %s
+            SET bio = %s, experience = %s, skills = %s, education = %s
             WHERE talent_id = %s
         """, (
             bio.strip(),
             experience.strip(),
             skills,  # This should be a list like ['Python', 'Java']
+            education.strip(),
             int(talent_id)
             ))
         conn.commit()

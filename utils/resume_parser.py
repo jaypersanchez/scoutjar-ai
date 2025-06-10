@@ -42,7 +42,8 @@ Return a JSON object with the following fields:
   "bio": "Professional summary or career objective if present.",
   "skills": "Comma-separated list of technical and soft skills.",
   "experience": "Summarized work history with job titles, companies, and what the candidate did.",
-  "education": "Highest degree or academic record.",
+  "education": "All academic history (degrees, certifications, schools) in a concise list or paragraph.",
+  "location": "City and/or country if mentioned.",
   "location": "City and/or country if mentioned.",
   "desired_salary": "Numeric or salary range if present.",
   "work_preferences": "Remote, On-site, or Hybrid if described.",
@@ -59,7 +60,7 @@ Work history should be formatted like this:
 If a field is not found, use an empty string.
 
 Resume:
-{resume_text[:4000]}
+{resume_text[:10000]}
 """
 
 
