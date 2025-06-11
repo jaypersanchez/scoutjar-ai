@@ -2,7 +2,11 @@ from flask import Flask, request, jsonify
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import psycopg2
+from psycopg2.extras import Json
 import os
+import sys
+import json
+from decimal import Decimal
 from flask_cors import CORS
 import requests
 from dotenv import load_dotenv
@@ -16,19 +20,41 @@ from docx import Document
 from datetime import datetime, timedelta
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
+#from sentence_transformers import SentenceTransformer
+#from matchmaker import explain_job_match_with_mistral_dict
+from utils.resume_parser import extract_text_from_file, parse_resume_to_fields
 
 app = Flask(__name__)
 CORS(app)
-
+load_dotenv()
 # Config: Set these as environment variables or change directly
 DB_NAME = os.getenv("DB_NAME", "scoutjar")
 DB_USER = os.getenv("DB_USER", "youruser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "yourpassword")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+def get_embedding(text, model="text-embedding-ada-002"):
+    try:
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "input": text
+        }
+        response = requests.post("https://api.openai.com/v1/embeddings", headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()["data"][0]["embedding"]
+    except Exception as e:
+        print(f"🔥 Error getting embedding: {e}")
+        return None
+
+    
 # This endpoint is to match a job posted in jobs table to the talent user
-@app.route('/match-jobs', methods=['POST'])
+@app.route('/ai/match-jobs', methods=['POST'])
 def match_jobs_for_talent():
     data = request.json
     talent_id = data.get("talent_id")
@@ -108,10 +134,71 @@ def match_jobs_for_talent():
         return jsonify({"error": "Failed to match jobs"}), 500
 
 
+@app.route("/ai/search-jobs-semantic", methods=["POST"])
+def search_jobs_semantic():
+    data = request.get_json()
+    talent_id = data.get("talent_id")
+    if not talent_id:
+        return jsonify({"error": "Missing talent_id"}), 400
+
+    conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT resume, bio, experience, skills
+        FROM talent_profiles
+        WHERE talent_id = %s
+    """, (talent_id,))
+    talent = cursor.fetchone()
+    if not talent:
+        return jsonify({"error": "Talent not found"}), 404
+
+    resume, bio, experience, skills = talent
+    query = f"{resume or ''} {bio or ''} {experience or ''} {' '.join(skills or [])}"
+
+    # Embed the talent query
+    try:
+        query_vector = get_embedding(query)
+    except Exception as e:
+        return jsonify({"error": "Embedding failed", "details": str(e)}), 500
+
+    # Get jobs and embed each one
+    cursor.execute("SELECT job_id, job_title, job_description, required_skills FROM jobs")
+    jobs = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    job_matches = []
+    for job_id, job_title, job_description, required_skills in jobs:
+        job_text = f"{job_title or ''} {job_description or ''} {' '.join(required_skills or [])}"
+        try:
+            job_vector = get_embedding(job_text)
+        except Exception as e:
+            continue
+
+        # Cosine similarity (dot product since they are normalized)
+        similarity = sum(q * j for q, j in zip(query_vector, job_vector))
+        job_matches.append({
+            "job_id": job_id,
+            "job_title": job_title,
+            "job_description": job_description,
+            "required_skills": required_skills,
+            "match_score": similarity * 100
+        })
+
+    # Sort by score descending
+    job_matches.sort(key=lambda x: x["match_score"], reverse=True)
+    return jsonify({"matches": job_matches})
 
 
 # Return a list of jobs the talent has applied for
-@app.route('/applied-jobs', methods=['POST'])
+@app.route('/ai/applied-jobs', methods=['POST'])
 def get_applied_jobs():
     data = request.json
     talent_id = data.get("talent_id")
@@ -152,7 +239,7 @@ def get_applied_jobs():
     return jsonify({"applied_jobs": applied_jobs})
 
 # This endpoint is used to explain to the scout talent how a talent matches with their job post
-@app.route("/explain-match", methods=["POST"])
+@app.route("/ai/explain-match", methods=["POST"])
 def explain_match():
     data = request.json
     job = data.get("job", {})
@@ -193,121 +280,99 @@ Based on this information, explain in 2-3 sentences why this candidate is a good
     explanation = response.json()["choices"][0]["message"]["content"]
     return jsonify({ "explanation": explanation })
     
-# This endpoint is used for semantic style search 
-'''@app.route('/search-talents', methods=['POST'])
-def search_talents():
+# This endpoint is used for semantic style search using minstral
+'''@app.route('/search-talents-mistral', methods=['POST'])
+def search_talents_mistral():
+    import json
+    from sklearn.metrics.pairwise import cosine_similarity
+
     query = request.json.get("query", "")
     if not query:
         return jsonify({"error": "Query is required"}), 400
 
-    print("🔍 Scout Search Query:", query)
+    print("🧠 Mistral Search Query:", query)
 
-    conn = psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
-    cursor = conn.cursor()
+    try:
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        query_embedding = model.encode([query])[0]
 
-    # ✅ Include tp.user_id in the SELECT
-    cursor.execute("""
-        SELECT tp.talent_id, tp.user_id, up.full_name, up.email, tp.resume, tp.bio, tp.experience,
-               tp.skills, tp.location, tp.availability
-        FROM public.talent_profiles tp
-        JOIN public.user_profiles up ON tp.user_id = up.user_id;
-    """)
-    talents = cursor.fetchall()
-    cursor.close()
-    conn.close()
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cur = conn.cursor()
 
-    if not talents:
-        return jsonify({"matches": []})
+        cur.execute("""
+            SELECT t.talent_id, t.user_id, u.full_name, u.email, t.resume, t.bio, t.experience,
+                   t.skills, t.location, t.availability, e.embedding
+            FROM talent_profiles t
+            JOIN user_profiles u ON t.user_id = u.user_id
+            JOIN talent_profile_embeddings e ON t.talent_id = e.talent_id;
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
 
-    # Build document corpus: query + all talent docs
-    docs = [query]
-    for talent in talents:
-        resume, bio, exp = talent[4], talent[5], talent[6]
-        combined_text = f"{resume or ''} {bio or ''} {exp or ''}"
-        docs.append(combined_text)
+        matches = []
+        threshold = 0.5  # semantic similarity threshold
 
-    # Compute similarity
-    tfidf = TfidfVectorizer(stop_words='english')
-    vectors = tfidf.fit_transform(docs)
-    scores = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+        for row in rows:
+            tid, uid, name, email, resume, bio, exp, skills, location, availability, embedding = row
+            sim = cosine_similarity([query_embedding], [embedding])[0][0]
 
-    threshold = 0.1
-    matches = []
+            if sim >= threshold:
+                job_stub = {
+                    "title": "Custom Search",
+                    "description": query,
+                    "skills": []
+                }
+                talent_stub = {
+                    "name": name,
+                    "resume": resume,
+                    "bio": bio,
+                    "experience": exp,
+                    "skills": skills or []
+                }
 
-    for i, score in enumerate(scores):
-        if score >= threshold:
-            # ✅ Unpack user_id in the right order
-            tid, uid, name, email, resume, bio, exp, skills, location, availability = talents[i]
+                try:
+                    explanation = explain_job_match_with_mistral_dict(job_stub, talent_stub)
+                except Exception as e:
+                    print(f"⚠️ Mistral explanation failed for talent_id {tid}:", e)
+                    explanation = "Explanation not available."
 
-            # Strip PII for OpenAI
-            stripped_info = {
-                "resume": resume,
-                "bio": bio,
-                "experience": exp,
-                "skills": skills,
-                "availability": availability
-            }
+                matches.append({
+                    "match_score": round(sim * 100, 2),
+                    "talent_id": tid,
+                    "user_id": uid,
+                    "name": name,
+                    "email": email,
+                    "location": location,
+                    "availability": availability,
+                    "skills": skills,
+                    "explanation": explanation
+                })
 
-            prompt = f"""
-You are an AI talent scout. A recruiter is looking for this: "{query}"
+        matches.sort(key=lambda x: -x["match_score"])
 
-Here is a candidate's anonymized profile:
-Resume: {stripped_info['resume']}
-Bio: {stripped_info['bio']}
-Experience: {stripped_info['experience']}
-Skills: {', '.join(stripped_info['skills'])}
-Availability: {stripped_info['availability']}
-
-Explain in 3–4 sentences why this candidate might be a good match.
-"""
-
-            explanation = ""
-            try:
-                openai_response = requests.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "gpt-3.5-turbo",
-                        "messages": [
-                            {"role": "system", "content": "You are a helpful recruiter assistant."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "temperature": 0.7
-                    }
-                )
-                openai_response.raise_for_status()
-                explanation = openai_response.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                print("OpenAI explanation failed:", e)
-                explanation = "Explanation not available."
-
-            matches.append({
-                "match_score": round(score * 100, 2),
-                "talent_id": tid,
-                "user_id": uid,  # ✅ Now included in the result
-                "name": name,
-                "email": email,
-                "location": location,
-                "availability": availability,
-                "skills": skills,
-                "explanation": explanation
+        if not matches:
+            suggestion = json.dumps({
+                "advice": "Try broadening your search keywords for better results.",
+                "refined_prompt": ""
             })
+            return jsonify({"matches": [], "suggestion": suggestion})
 
-    matches.sort(key=lambda x: -x['match_score'])
-    return jsonify({"matches": matches})
+        return jsonify({"matches": matches})
+
+    except Exception as e:
+        print("🔥 Error in /search-talents-mistral:", e)
+        return jsonify({"error": "Internal server error"}), 500
 '''
 
 # This endpoint is used to return a match of talents based on scout talent job post details
-@app.route('/jobs', methods=['POST'])
+@app.route('/ai/jobs', methods=['POST'])
 def match_talents():
     job = request.json
     job_text = f"{job.get('title', '')} {job.get('description', '')} {job.get('skills', '')}"
@@ -367,7 +432,7 @@ def match_talents():
     return jsonify({"matches": matches})
     
 # search talent with suggestion 
-@app.route('/search-talents', methods=['POST'])
+@app.route('/ai/search-talents', methods=['POST'])
 def search_talents():
     import json  # Make sure you have this at the top
 
@@ -498,7 +563,7 @@ Be concise and friendly.
     # 🔥 Normal return if there are matches
     return jsonify({"matches": matches})
 
-@app.route('/recruiter-info/<int:job_id>', methods=['GET'])
+@app.route('/ai/recruiter-info/<int:job_id>', methods=['GET'])
 def get_recruiter_info(job_id):
     try:
         conn = psycopg2.connect(
@@ -536,7 +601,7 @@ def get_recruiter_info(job_id):
         print("🔥 Error in /recruiter-info:", e)
         return jsonify({"error": "Failed to retrieve recruiter info"}), 500
 
-@app.route('/suggest-fields', methods=['POST'])
+@app.route('/ai/suggest-fields', methods=['POST'])
 def suggest_fields():
     data = request.json
     job_title = data.get("job_title", "")
@@ -589,7 +654,7 @@ Job Description: {job_description}
         return jsonify({"error": f"Failed to parse AI response: {str(e)}"}), 500
 
 
-@app.route('/suggest-skills', methods=['POST'])
+@app.route('/ai/suggest-skills', methods=['POST'])
 def suggest_skills():
     data = request.json
     job_title = data.get("job_title", "")
@@ -641,7 +706,7 @@ Job Description: {job_description}
     normalized = ", ".join(skills)
     return jsonify({"suggested_skills": normalized})
 
-@app.route('/ai-match-talents', methods=['POST'])
+@app.route('/ai/ai-match-talents', methods=['POST'])
 def ai_match_talents():
     data = request.json
 
@@ -665,9 +730,11 @@ def ai_match_talents():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT tp.talent_id, tp.user_id, tp.resume, tp.bio, tp.experience, tp.skills, tp.industry_experience,
-                   tp.years_experience, tp.desired_salary, tp.location, tp.work_preferences,
-                   tp.availability, up.full_name, up.email
+            SELECT tp.talent_id, tp.user_id, tp.resume, tp.bio, tp.experience, tp.skills, 
+                    tp.industry_experience,
+                   tp.years_experience, tp.desired_salary, tp.location, tp.country, 
+                   tp.country_code, tp.work_preferences,
+                   tp.availability, up.full_name, up.email, tp.profile_mode
             FROM public.talent_profiles tp
             JOIN public.user_profiles up ON tp.user_id = up.user_id;
         """)
@@ -683,8 +750,9 @@ def ai_match_talents():
     job_doc = [job_vector]
     talent_docs = [
         f"{resume or ''} {bio or ''} {exp or ''} {' '.join(skills or [])} {' '.join(industry or [])} {years or 0}"
-        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _) in talents
+        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _, _, _, _) in talents
     ]
+
 
     tfidf = TfidfVectorizer(stop_words='english')
     vectors = tfidf.fit_transform(job_doc + talent_docs)
@@ -697,7 +765,9 @@ def ai_match_talents():
 
     # 👇 Parallel explanation builder
     def build_result(i, score):
-        tid, uid, resume, bio, exp, skills, industry, years, salary, location, work_preferences, availability, name, email = talents[i]
+        tid, uid, resume, bio, exp, skills, industry, years, salary, location, country, country_code, work_preferences, availability, name, email, profile_mode = talents[i]
+        print(f"🧪 Talent {tid}: profile_mode = {profile_mode}")
+
         try:
             explanation = "" '''generate_match_explanation(
                 {
@@ -716,7 +786,7 @@ def ai_match_talents():
         except Exception as e:
             print(f"❌ Failed to get explanation for talent_id {tid}:", e)
             explanation = "Explanation not available."
-
+        
         return {
             "talent_id": tid,
             "user_id": uid,
@@ -730,10 +800,13 @@ def ai_match_talents():
             "years_experience": years,
             "desired_salary": salary,
             "location": location,
+            "country": country,
+            "country_code": country_code,
             "work_preferences": work_preferences,
             "availability": availability,
             "match_score": round(score * 100, 2),
-            "explanation": explanation
+            "explanation": explanation,
+            "profile_mode": profile_mode
         }
 
     results = []
@@ -775,7 +848,7 @@ def ai_match_talents():
 
 
 
-@app.route("/job-titles/all", methods=["GET"])
+@app.route("/ai/job-titles/all", methods=["GET"])
 def get_all_job_titles():
     try:
         conn = psycopg2.connect(
@@ -798,7 +871,7 @@ def get_all_job_titles():
         return jsonify([]), 500
 
 # This is for short list of talents that recruiter have approach but not necessarily tied to a job
-@app.route("/ai-shortlist", methods=["POST"])
+@app.route("/ai/ai-shortlist", methods=["POST"])
 def ai_shortlist():
     data = request.json
     recruiter_id = data.get("recruiter_id")
@@ -830,7 +903,7 @@ def ai_shortlist():
         print("🔥 AI Shortlist error:", e)
         return jsonify({"error": "Shortlist failed"}), 500
 
-@app.route("/ai-shortlisted-candidates", methods=["POST"])
+@app.route("/ai/ai-shortlisted-candidates", methods=["POST"])
 def get_ai_shortlisted_candidates():
     data = request.json
     recruiter_id = data.get("recruiter_id")
@@ -899,7 +972,7 @@ def extract_text_from_file(file_path, extension):
         print(f"🔥 Failed to extract text: {e}")
         return None
 
-@app.route("/upload-resume", methods=["POST"])
+@app.route("/ai/upload-resume", methods=["POST"])
 def upload_resume():
     talent_id = request.form.get("talent_id")
     file = request.files.get("file")
@@ -934,15 +1007,53 @@ def upload_resume():
             WHERE talent_id = %s
         """, (extracted_text.strip(), talent_id))
         conn.commit()
+        #cursor.close()
+        #conn.close()
+
+        # now parse resume for specific fields to update talent profile
+        # Step 2: Parse resume content to fields
+        parsed = parse_resume_to_fields(extracted_text)
+        bio = parsed.get("bio", "")
+        experience = parsed.get("experience", "")
+        skills = parsed.get("skills", [])
+        education = parsed.get("education")
+
+        # Safely convert experience (dict or list) to string
+        if isinstance(experience, (dict, list)):
+            experience = json.dumps(experience)
+
+        # Convert skills to list if it's a string
+        if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(",") if s.strip()]
+
+        print("🔍 Parsed talent_id:", talent_id)
+        print("🔍 Parsed bio:", bio)
+        print("🔍 Parsed experience:", experience)
+        print("🔍 Parsed skills:", skills)
+        print("🔍 Parsed education:", education)
+        
+        # Step 3: Update bio, experience and education
+        cursor.execute("""
+            UPDATE talent_profiles
+            SET bio = %s, experience = %s, skills = %s, education = %s
+            WHERE talent_id = %s
+        """, (
+            bio.strip(),
+            experience.strip(),
+            skills,  # This should be a list like ['Python', 'Java']
+            education.strip(),
+            int(talent_id)
+            ))
+        conn.commit()
         cursor.close()
         conn.close()
-
-        return jsonify({"message": "Resume uploaded and saved successfully"})
+        return jsonify({"message": "Resume uploaded and profile updated with extracted fields."})
     except Exception as e:
         print("🔥 DB Error:", e)
         return jsonify({"error": "Database update failed"}), 500
 
-@app.route("/generate-fictional-resumes", methods=["POST"])
+    
+@app.route("/ai/generate-fictional-resumes", methods=["POST"])
 def generate_fictional_resumes():
     try:
         talent_id = request.json.get("talent_id") if request.is_json else None
@@ -1042,7 +1153,7 @@ Availability:
         print("🔥 Error generating enhanced resumes:", e)
         return jsonify({"error": "Internal server error."}), 500
 
-@app.route('/prefill-job-from-title', methods=['POST'])
+@app.route('/ai/prefill-job-from-title', methods=['POST'])
 def prefill_job_from_title():
     data = request.get_json()
     job_title = data.get("job_title", "").strip()
@@ -1103,6 +1214,162 @@ Respond ONLY in this exact JSON format:
         print("🔥 Error parsing OpenAI response:", e)
         return jsonify({"error": "Failed to parse AI response"}), 500
 
+# This is an endpoint to set the Talent's dream job settings
+@app.route("/ai/save-passive-preferences", methods=["POST"])
+def save_passive_preferences():
+    data = request.json
+    required_fields = ["talent_id"]
+
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    talent_id = data["talent_id"]
+    salary_min = data.get("salary_min")
+    salary_max = data.get("salary_max")
+    dream_companies = data.get("dream_companies", [])
+    match_threshold = data.get("match_threshold", 80)
+    remote_preference = data.get("remote_preference", True)
+    preferred_industries = data.get("preferred_industries", [])
+    preferred_roles = data.get("preferred_roles", [])
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO passive_preferences (
+                talent_id, salary_min, salary_max, dream_companies, match_threshold,
+                remote_preference, preferred_industries, preferred_roles, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+            ON CONFLICT (talent_id) DO UPDATE SET
+                salary_min = EXCLUDED.salary_min,
+                salary_max = EXCLUDED.salary_max,
+                dream_companies = EXCLUDED.dream_companies,
+                match_threshold = EXCLUDED.match_threshold,
+                remote_preference = EXCLUDED.remote_preference,
+                preferred_industries = EXCLUDED.preferred_industries,
+                preferred_roles = EXCLUDED.preferred_roles,
+                updated_at = now();
+        """, (
+            talent_id, salary_min, salary_max, dream_companies, match_threshold,
+            remote_preference, preferred_industries, preferred_roles
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Passive preferences saved successfully."})
+
+    except Exception as e:
+        print("🔥 Error saving passive preferences:", e)
+        return jsonify({"error": "Database operation failed."}), 500
+
+# This endpoint is to get the passive preferences settings 
+@app.route("/ai/get-passive-preferences", methods=["POST"])
+def get_passive_preferences():
+    data = request.json
+    talent_id = data.get("talent_id")
+
+    if not talent_id:
+        return jsonify({"error": "Missing talent_id"}), 400
+
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT salary_min, salary_max, dream_companies, match_threshold,
+                   remote_preference, preferred_industries, preferred_roles
+            FROM passive_preferences
+            WHERE talent_id = %s;
+        """, (talent_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"message": "No passive preferences found", "data": None}), 200
+
+        return jsonify({
+            "data": {
+                "salary_min": row[0],
+                "salary_max": row[1],
+                "dream_companies": row[2],
+                "match_threshold": row[3],
+                "remote_preference": row[4],
+                "preferred_industries": row[5],
+                "preferred_roles": row[6]
+            }
+        })
+
+    except Exception as e:
+        print("🔥 Error fetching passive preferences:", e)
+        return jsonify({"error": "Failed to fetch preferences"}), 500
+
+# This endpoint is used to provide the passive job match for talents who are in passive mode
+@app.route("/ai/passive-matches/<int:talent_id>", methods=["GET"])
+def get_passive_matches(talent_id):
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT pm.job_id, pm.recruiter_id, pm.match_score, j.job_title, j.job_description,
+                   j.required_skills, j.salary_range, j.location, j.work_mode, j.experience_level,
+                   j.employment_type
+            FROM passive_matches pm
+            JOIN jobs j ON pm.job_id = j.job_id
+            WHERE pm.talent_id = %s
+            ORDER BY pm.match_score DESC;
+        """, (talent_id,))
+
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        matches = []
+        for row in rows:
+            matches.append({
+                "job_id": row[0],
+                "recruiter_id": row[1],
+                "match_score": row[2],
+                "job_title": row[3],
+                "job_description": row[4],
+                "required_skills": row[5],
+                "salary_range": row[6],
+                "location": row[7],
+                "work_mode": row[8],
+                "experience_level": row[9],
+                "employment_type": row[10]
+            })
+
+        return jsonify({"matches": matches})
+
+    except Exception as e:
+        print("🔥 Error fetching passive matches:", e)
+        return jsonify({"error": "Failed to fetch passive matches"}), 500
+
 
 @app.route('/recruiter-info/<int:job_id>', methods=['GET'])
 def get_recruiter_info(job_id):
@@ -1148,4 +1415,11 @@ if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     app.run(host=host, port=port)
-    
+   
+   
+'''if __name__ == '__main__':
+    port = int(os.getenv("FLASK_PORT", 5001))
+    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    context = ('server.cert', 'server.key')  # (cert, key) order
+    app.run(host=host, port=port, ssl_context=context)
+'''
