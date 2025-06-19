@@ -1408,16 +1408,17 @@ def dashboard():
         "apps_table": applications_df.to_dict(orient='records')
     })
 
-
+'''print(f"🔥 You are in localhost DEVELOPMENT")
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     app.run(host=host, port=port)
+'''   
    
-   
-'''if __name__ == '__main__':
+print(f"🔥 You are in localhost DEVELOPMENT")
+if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     context = ('server.cert', 'server.key')  # (cert, key) order
     app.run(host=host, port=port, ssl_context=context)
-'''
+
