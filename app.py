@@ -1415,7 +1415,7 @@ if __name__ == '__main__':
     app.run(host=host, port=port)
 '''   
    
-print(f"🔥 You are in localhost DEVELOPMENT")
+print(f"🔥 You are in localhost PRODUCTION")
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
