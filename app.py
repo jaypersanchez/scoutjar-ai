@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import psycopg2
@@ -23,6 +23,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 #from sentence_transformers import SentenceTransformer
 #from matchmaker import explain_job_match_with_mistral_dict
 from utils.resume_parser import extract_text_from_file, parse_resume_to_fields
+import pandas as pd
+import plotly.express as px
+
 
 app = Flask(__name__)
 CORS(app)
@@ -1369,6 +1372,41 @@ def get_passive_matches(talent_id):
     except Exception as e:
         print("🔥 Error fetching passive matches:", e)
         return jsonify({"error": "Failed to fetch passive matches"}), 500
+
+# For Dashboard data analytics
+@app.route('/dashboard',methods=["GET"])
+def dashboard():
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
+    )
+
+    # 1. Job Postings Summary
+    jobs_df = pd.read_sql(
+        "SELECT recruiter_id, job_id, job_title, location, date_posted FROM jobs",
+        conn
+    )
+
+    # 2. Applications Summary
+    apps_query = """
+        SELECT j.job_id, j.job_title, COUNT(a.application_id) AS applicant_count,
+               AVG(t.years_experience) AS avg_experience
+        FROM jobs j
+        JOIN job_applications a ON j.job_id = a.job_id
+        JOIN talent_profiles t ON a.talent_id = t.talent_id
+        GROUP BY j.job_id, j.job_title
+    """
+    applications_df = pd.read_sql(apps_query, conn)
+
+    conn.close()
+
+    return jsonify({
+        "jobs_table": jobs_df.to_dict(orient='records'),
+        "apps_table": applications_df.to_dict(orient='records')
+    })
 
 
 if __name__ == '__main__':
