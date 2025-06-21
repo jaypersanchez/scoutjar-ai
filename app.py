@@ -30,6 +30,8 @@ import plotly.express as px
 app = Flask(__name__)
 CORS(app)
 load_dotenv()
+app_env = os.getenv("APP_ENV", "development")
+
 # Config: Set these as environment variables or change directly
 DB_NAME = os.getenv("DB_NAME", "scoutjar")
 DB_USER = os.getenv("DB_USER", "youruser")
@@ -1408,6 +1410,18 @@ def dashboard():
         "apps_table": applications_df.to_dict(orient='records')
     })
 
+''' Start server based on ENV '''
+if __name__ == '__main__':
+    port = int(os.getenv("FLASK_PORT", 5001))
+    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    if app_env == "production":
+        print("🔥 You are in PRODUCTION MODE")
+        context = ('server.cert', 'server.key')
+        app.run(host=host, port=port, ssl_context=context)
+    else:
+        print("🔥 You are in DEVELOPMENT MODE")
+        app.run(host=host, port=port)
+
 '''print(f"🔥 You are in localhost DEVELOPMENT")
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
@@ -1415,10 +1429,10 @@ if __name__ == '__main__':
     app.run(host=host, port=port)
 '''   
    
-print(f"🔥 You are in localhost PRODUCTION")
+'''print(f"🔥 You are in localhost PRODUCTION")
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_PORT", 5001))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     context = ('server.cert', 'server.key')  # (cert, key) order
     app.run(host=host, port=port, ssl_context=context)
-
+'''
