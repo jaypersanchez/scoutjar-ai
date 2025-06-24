@@ -1376,7 +1376,7 @@ def get_passive_matches(talent_id):
         return jsonify({"error": "Failed to fetch passive matches"}), 500
 
 # For Dashboard data analytics
-@app.route('/dashboard',methods=["GET"])
+@app.route('/ai/dashboard',methods=["GET"])
 def dashboard():
     conn = psycopg2.connect(
         dbname=DB_NAME,
@@ -1409,6 +1409,9 @@ def dashboard():
         "jobs_table": jobs_df.to_dict(orient='records'),
         "apps_table": applications_df.to_dict(orient='records')
     })
+
+
+
 
 ''' Start server based on ENV '''
 if __name__ == '__main__':
