@@ -1421,6 +1421,7 @@ if __name__ == '__main__':
         print("🔥 You are in PRODUCTION MODE")
         context = ('server.cert', 'server.key')
         app.run(host=host, port=port, ssl_context=context)
+        #app.run(host=host, port=port)   
     else:
         print("🔥 You are in DEVELOPMENT MODE")
         app.run(host=host, port=port)
