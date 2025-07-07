@@ -736,18 +736,18 @@ def ai_match_talents():
 
         cursor.execute("""
             SELECT tp.talent_id, tp.user_id, tp.resume, tp.bio, tp.experience, tp.skills, 
-                    tp.industry_experience,
-                   tp.years_experience, tp.desired_salary, tp.location, tp.country, 
-                   tp.country_code, tp.work_preferences,
-                   tp.availability, up.full_name, up.email, tp.profile_mode
+                tp.industry_experience,
+                tp.years_experience, tp.desired_salary, tp.location, tp.country, 
+                tp.country_code, tp.work_preferences,
+                tp.availability, up.full_name, up.email, tp.profile_mode,
+                pp.match_threshold
             FROM public.talent_profiles tp
-            JOIN public.user_profiles up ON tp.user_id = up.user_id;
+            JOIN public.user_profiles up ON tp.user_id = up.user_id
+            LEFT JOIN public.passive_preferences pp ON tp.talent_id = pp.talent_id
         """)
-
         talents = cursor.fetchall()
         cursor.close()
         conn.close()
-
     except Exception as e:
         print("🔥 Error fetching talent profiles:", e)
         return jsonify({"error": "Database error"}), 500
@@ -755,9 +755,11 @@ def ai_match_talents():
     job_doc = [job_vector]
     talent_docs = [
         f"{resume or ''} {bio or ''} {exp or ''} {' '.join(skills or [])} {' '.join(industry or [])} {years or 0}"
-        for (_, _, resume, bio, exp, skills, industry, years, _, _, _, _, _, _, _, _, _) in talents
+        for (
+            _, _, resume, bio, exp, skills, industry, years,
+            _, _, _, _, _, _, _, _, _, _
+        ) in talents
     ]
-
 
     tfidf = TfidfVectorizer(stop_words='english')
     vectors = tfidf.fit_transform(job_doc + talent_docs)
@@ -768,30 +770,27 @@ def ai_match_talents():
         key=lambda x: -x[1]
     )[:10]
 
-    # 👇 Parallel explanation builder
     def build_result(i, score):
-        tid, uid, resume, bio, exp, skills, industry, years, salary, location, country, country_code, work_preferences, availability, name, email, profile_mode = talents[i]
+        (
+            tid, uid, resume, bio, exp, skills, industry, years, salary,
+            location, country, country_code, work_preferences, availability,
+            name, email, profile_mode, passive_threshold
+        ) = talents[i]
+
         print(f"🧪 Talent {tid}: profile_mode = {profile_mode}")
 
-        try:
-            explanation = "" '''generate_match_explanation(
-                {
-                    "title": job_title,
-                    "description": job_description,
-                    "skills": required_skills
-                },
-                {
-                    "name": name,
-                    "resume": resume,
-                    "bio": bio,
-                    "experience": exp,
-                    "skills": skills or []
-                }
-            )'''
-        except Exception as e:
-            print(f"❌ Failed to get explanation for talent_id {tid}:", e)
-            explanation = "Explanation not available."
-        
+        recruiter_threshold = match_threshold
+        passive_cutoff = (passive_threshold or 50) / 100.0
+
+        if profile_mode == "active":
+            if score < recruiter_threshold:
+                print(f"⛔ Skipping active talent {tid} score={score:.2f} below recruiter threshold {recruiter_threshold:.2f}")
+                return None
+        elif profile_mode == "passive":
+            if score < passive_cutoff:
+                print(f"⛔ Skipping passive talent {tid} score={score:.2f} below passive threshold {passive_cutoff:.2f}")
+                return None
+
         return {
             "talent_id": tid,
             "user_id": uid,
@@ -810,13 +809,9 @@ def ai_match_talents():
             "work_preferences": work_preferences,
             "availability": availability,
             "match_score": round(score * 100, 2),
-            "explanation": explanation,
+            "explanation": "",
             "profile_mode": profile_mode
         }
-
-    results = []
-    
-    import traceback
 
     results = []
     errors = []
@@ -826,6 +821,7 @@ def ai_match_talents():
             return future.result()
         except Exception as e:
             errors.append(str(e))
+            import traceback
             traceback.print_exc()
             return None
 
@@ -838,18 +834,15 @@ def ai_match_talents():
                     results.append(result)
 
         results.sort(key=lambda x: -x["match_score"])
-
+        print(f"✅ final results length: {len(results)}")
         if errors:
             print("⚠️ One or more match explanations failed.")
         return jsonify({"matches": results})
-    except Exception as e:
-        print("🔥 Critical error in /ai-match-talents:")
+    except Exception:
+        import traceback
         traceback.print_exc()
         return jsonify({"error": "Internal server error"}), 500
 
-
-    results.sort(key=lambda x: -x["match_score"])
-    return jsonify({"matches": results})
 
 
 
