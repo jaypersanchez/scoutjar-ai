@@ -1216,6 +1216,7 @@ Respond ONLY in this exact JSON format:
 @app.route("/ai/save-passive-preferences", methods=["POST"])
 def save_passive_preferences():
     data = request.json
+    print("🚀 Incoming passive preferences payload:", data)
     required_fields = ["talent_id"]
 
     for field in required_fields:
@@ -1230,6 +1231,8 @@ def save_passive_preferences():
     remote_preference = data.get("remote_preference", True)
     preferred_industries = data.get("preferred_industries", [])
     preferred_roles = data.get("preferred_roles", [])
+    preferred_currency = data.get("desired_currency", "USD")
+    
 
     try:
         conn = psycopg2.connect(
@@ -1244,9 +1247,10 @@ def save_passive_preferences():
         cursor.execute("""
             INSERT INTO passive_preferences (
                 talent_id, salary_min, salary_max, dream_companies, match_threshold,
-                remote_preference, preferred_industries, preferred_roles, updated_at
+                remote_preference, preferred_industries, preferred_roles, 
+                preferred_currency,updated_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now())
             ON CONFLICT (talent_id) DO UPDATE SET
                 salary_min = EXCLUDED.salary_min,
                 salary_max = EXCLUDED.salary_max,
@@ -1255,10 +1259,11 @@ def save_passive_preferences():
                 remote_preference = EXCLUDED.remote_preference,
                 preferred_industries = EXCLUDED.preferred_industries,
                 preferred_roles = EXCLUDED.preferred_roles,
+                preferred_currency = EXCLUDED.preferred_currency,
                 updated_at = now();
         """, (
             talent_id, salary_min, salary_max, dream_companies, match_threshold,
-            remote_preference, preferred_industries, preferred_roles
+            remote_preference, preferred_industries, preferred_roles,preferred_currency
         ))
 
         conn.commit()
