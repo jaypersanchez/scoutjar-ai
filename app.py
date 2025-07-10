@@ -1231,7 +1231,7 @@ def save_passive_preferences():
     remote_preference = data.get("remote_preference", True)
     preferred_industries = data.get("preferred_industries", [])
     preferred_roles = data.get("preferred_roles", [])
-    preferred_currency = data.get("desired_currency", "USD")
+    preferred_currency = data.get("preferred_currency", "USD")
     
 
     try:
