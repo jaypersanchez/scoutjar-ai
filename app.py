@@ -1010,28 +1010,28 @@ def upload_resume():
 
         # now parse resume for specific fields to update talent profile
         # Step 2: Parse resume content to fields
-        parsed = parse_resume_to_fields(extracted_text)
+        '''parsed = parse_resume_to_fields(extracted_text)
         bio = parsed.get("bio", "")
         experience = parsed.get("experience", "")
         skills = parsed.get("skills", [])
-        education = parsed.get("education")
+        education = parsed.get("education")'''
 
         # Safely convert experience (dict or list) to string
         if isinstance(experience, (dict, list)):
             experience = json.dumps(experience)
 
         # Convert skills to list if it's a string
-        if isinstance(skills, str):
-            skills = [s.strip() for s in skills.split(",") if s.strip()]
+        '''if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(",") if s.strip()]'''
 
-        print("🔍 Parsed talent_id:", talent_id)
-        print("🔍 Parsed bio:", bio)
-        print("🔍 Parsed experience:", experience)
-        print("🔍 Parsed skills:", skills)
-        print("🔍 Parsed education:", education)
+        #print("🔍 Parsed talent_id:", talent_id)
+        #print("🔍 Parsed bio:", bio)
+        #print("🔍 Parsed experience:", experience)
+        #print("🔍 Parsed skills:", skills)
+        #print("🔍 Parsed education:", education)
         
         # Step 3: Update bio, experience and education
-        cursor.execute("""
+        '''cursor.execute("""
             UPDATE talent_profiles
             SET bio = %s, experience = %s, skills = %s, education = %s
             WHERE talent_id = %s
@@ -1044,8 +1044,8 @@ def upload_resume():
             ))
         conn.commit()
         cursor.close()
-        conn.close()
-        return jsonify({"message": "Resume uploaded and profile updated with extracted fields."})
+        conn.close()'''
+        return jsonify({"message": "Resume uploaded and saved in your profile."})
     except Exception as e:
         print("🔥 DB Error:", e)
         return jsonify({"error": "Database update failed"}), 500
